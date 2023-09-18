@@ -1,0 +1,245 @@
+---
+title: "hw5"
+author: "Xinyu Zhou"
+date: "2023-03-20"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Question 1- Problem 1.23 in textbook
+(a)
+```{r}
+load("~/Desktop/Spring2023/Stat525/HWs/RData for homework-20230208/gpa.RData")
+gpa<-data
+x<- gpa$X
+y<- gpa$Y
+lrm<-lm(y~x)
+ei<-lrm$residuals
+print(ei)
+Ei<-sum(ei)
+print(Ei)
+```
+So we have sum of residuals = 5.793976e-15, which is close to 0. So we can conclude that thec residuals sum to zero.
+
+(b)
+```{r}
+n<-length(y)
+sigma_sq<- sum((ei^2))/(n-2)
+print(sigma_sq)
+sigma<-sqrt(sigma_sq)
+print(sigma)
+```
+
+$\sigma^2=0.7510209$ and $\sigma=0.8666146$. $\sigma$ is expressed in the unit of grade points.
+
+# Question 2- Problem 1.24 in textbook
+(a)
+```{r}
+load("~/Desktop/Spring2023/Stat525/HWs/RData for homework-20230208/copier.RData")
+copier<-data
+Cx<-data$X
+Cy<-data$Y
+Clrm<-lm(Cy~Cx)
+e1<-Clrm$residuals
+print(e1)
+ssr<-sum(e1**2)
+print(ssr)
+```
+
+```{r}
+b0<-Clrm$coefficients[1]
+b1<-Clrm$coefficients[2]
+Q=sum((Cy - b0 - b1*Cx)**2)
+print(Q)
+```
+The relation between the sum of the squared residuals and the quantity Q is that they are same.
+
+(b)
+```{r}
+n<-length(Cy)
+Csigma_sq<- sum((e1^2))/(n-2)
+print(Csigma_sq)
+Csigma<-sqrt(Csigma_sq)
+print(Csigma)
+```
+$\sigma^2=127.8079$ and $\sigma=11.30522$. $\sigma$ is expressed in the unit of minutes.
+
+# Question 3- Problem 1.27 in textbook
+
+```{r}
+load("/Users/zhouxinyu/Desktop/Spring2023/Stat525/HWs/RData for homework-20230208/muscle.RData")
+muscle<-data
+Mx<-muscle$X
+My<-muscle$Y
+Mlrm<-lm(My~Mx)
+coef<-Mlrm$coefficients
+print(coef)
+```
+
+```{r}
+plot(Mx,My,xlab="age",ylab="muscle mass",pch=16,col="blue",ylim=c(20,120),xlim=c(40,80))
+b0=Mlrm$coefficients[1]
+b1=Mlrm$coefficients[2]
+abline(a = b0, b = b1)
+```
+The linear regression function appear to fit the data well. My plot support the 
+anticipation that muscle mass decreases with age.
+
+(b)
+(1) A point estimate of the difference in the mean muscle mass for women differing in age by one year is $b_0=-1.229323$
+(2) A point estimate of the mean muscle mass for women aged X = 60 years is $b_1+b_0\times60=158.788886 + -1.229323\times60=85.02948$
+(3) 
+```{r}
+Mresiduals=Mlrm$residuals
+print(Mresiduals[8])
+```
+The value of the residual for the eighth case is -2.386647.
+(4) 
+```{r}
+n<-length(My)
+Msigma_sq<- sum((Mresiduals^2))/(n-2)
+print(Msigma_sq)
+```
+A point estimate of $\sigma^2=75.27803$.
+
+\pagebreak[4]
+# Question 5- Problem 1.43 in textbook
+(a)
+(1) Total population and Number of active physicians
+```{r}
+load("/Users/zhouxinyu/Desktop/Spring2023/Stat525/HWs/RData for homework-20230208/cdi.RData")
+cdi<-data
+Cx1 <- cdi$X5 #Total population
+CY <- cdi$X8 # Number of active physicians
+lrm_1 <- lm(CY~Cx1)
+b0_1<- lrm_1$coef[1]
+b1_1 <- lrm_1$coef[2]
+print(c(b0_1,b1_1))
+```
+So we have the estimated regression function $Y_1=-109.3277+0.002845961X$.
+
+(2) Number of hospital beds and Number of active physicians
+
+```{r}
+Cx2 <- cdi$X9 # Number of hospital beds
+lrm_2 <- lm(CY~Cx2)
+b0_1<- lrm_1$coef[1]
+b1_1 <- lrm_1$coef[2]
+b0_2 <- lrm_2$coef[1]
+b1_2 <- lrm_2$coef[2]
+print(c(b0_2,b1_2))
+```
+So we have the estimated regression function $Y_2=-84.4971556+0.7497893X$.
+
+(3) Total personal income and Number of active physicians
+
+```{r}
+Cx3 <- cdi$X16 # Total personal income
+lrm_3 <- lm(CY~Cx3)
+b0_3 <- lrm_3$coef[1]
+b1_3 <- lrm_3$coef[2]
+print(c(b0_3, b1_3))
+```
+So we have the estimated regression function $Y_3=-44.7889854 +0.1339329X$.
+
+(b)
+(1) Total population and Number of active physicians
+
+```{r}
+plot(Cx1,CY,pch=16,col="blue")
+abline(lrm_1)
+```
+
+(2) Number of hospital beds and Number of active physicians
+
+```{r}
+plot(Cx2,CY,pch=16,col="blue")
+abline(lrm_2)
+```
+
+(3) Total personal income and Number of active physicians
+
+```{r}
+plot(Cx3,CY,pch=16,col="blue")
+abline(lrm_3)
+```
+I think linear regression relations appear to provide a good fit for each of the three predictor variables.
+
+(c)
+(1) Total population and Number of active physicians
+```{r}
+n<-length(CY)
+MSE_1<-sum(lrm_1$residuals^2)/(n-2)
+print(MSE_1)
+```
+MSE for Total population is 403445.1.
+
+(2) Number of hospital beds and Number of active physicians
+```{r}
+MSE_2<-sum(lrm_2$residuals^2)/(n-2)
+print(MSE_2)
+```
+MSE for Number of hospital beds is 392662.6.
+
+(3) Total personal income and Number of active physicians
+```{r}
+MSE_3<-sum(lrm_3$residuals^2)/(n-2)
+print(MSE_3)
+```
+MSE for Total personal income is 360692.8.
+
+By comparison, I think Total personal income, which is the 3rd predictor variable leads to the smallest variability around the fitted regression line.
+
+# Question 7- Problem 6.28 c-d in textbook
+(c)
+(1) Model I 
+```{r}
+load("/Users/zhouxinyu/Desktop/Spring2023/Stat525/HWs/RData for homework-20230208/cdi.RData")
+cdi<-data
+X_1 <- cdi$X5 # Total population
+X_2<-cdi$X4 # Land area
+X_3<-cdi$X16 # Total personal income
+Y <- cdi$X8 # Number of active physicians
+Model1_lrm<-lm(Y~X_1+X_2+X_3)
+print(Model1_lrm)
+```
+So we have $Y=0.000989X_1-0.070481X_2+0.089416X_3-9.746507$ is the first-order regression model for model I.
+
+(2) Model II
+```{r}
+X_21 <- cdi$X5/cdi$X4 # Total population divided by land area
+X_22<-cdi$X7 # Percent of population 65 or older
+X_23<-cdi$X16 # Total personal income
+Y_2 <- cdi$X8 # Number of active physicians
+Model2_lrm<-lm(Y_2~X_21+X_22+X_23)
+print(Model2_lrm)
+```
+So we have $Y=0.1034X_1+5.9516X_2+0.1284X_3-165.5884$ is the first-order regression model for model II.
+
+(d)
+Model I
+```{r}
+summary1<-summary(Model1_lrm)
+summary1$r.sq
+```
+$R^2=0.8966344$ for Model I.
+
+Model II
+```{r}
+summary2<-summary(Model2_lrm)
+summary2$r.sq
+```
+$R^2=0.9063545$ for Model II.
+
+By comparison, we have $R^2$ for model II is larger, so we are preferable for model II in terms of this measure.
+
+
+
+
+
+
+
+
+
