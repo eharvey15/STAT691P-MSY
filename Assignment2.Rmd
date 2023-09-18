@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-This is a document we can use for our data.
+This is a document we can use for our data. It is very boring. 
 
 ```{r}
 hist(faithful$eruptions)
