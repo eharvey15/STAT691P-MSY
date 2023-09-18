@@ -58,6 +58,7 @@ flight.data <- read.csv("NewOrlFlights2022.csv",
 flight.data.new <- flight.data
 ```
 
+<<<<<<< HEAD
 
 ```{r}
 #not really sure how this works
@@ -213,3 +214,6 @@ graphics.off()
 ```
 
 
+=======
+Test line from Chris after creating a new PAT.
+>>>>>>> cba567d63f0e53e14854dc80b285a51cfc41fc87
