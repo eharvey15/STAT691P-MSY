@@ -83,6 +83,8 @@ ylab="Number of Flights")
 barplot(table(flight.data.new$carrier), las=2,
         main="Variable: Airline", col="red",
 ylab="Number of Flights")
+
+table(flight.data.new$carrier)
 ```
 
 
@@ -202,7 +204,6 @@ colorvals <- colorRamp(c("#CC0000","white","#3366CC"),space="Lab")
 # plot correlogram, using ovals to represent correlation (need to run these 2 lines of code together)
 
 plotcorr(corr.matrix.flight, col=rgb(colorvals((corr.matrix.flight+1)/2), maxColorValue=255))
-
 corrgram(corr.matrix.flight, type="cor",upper.panel=panel.conf,
 lower.panel=panel.conf)
 
