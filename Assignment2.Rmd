@@ -56,6 +56,12 @@ flight.data <- read.csv("NewOrlFlights2022.csv",
                         colClasses=flight.data.types,na.strings=missing.values)
 
 flight.data.new <- flight.data
+
+# Reorder month factor
+month.levels.unord = levels(flight.data.new$month)
+flight.data.new$month <- factor(flight.data.new$month,
+                                levels=month.levels.unord[order(as.numeric(month.levels.unord))],
+                                ordered=TRUE)
 ```
 
 
@@ -89,6 +95,7 @@ ylab="Number of Flights")
 # Month for Flight
 
 barplot(table(flight.data.new$month), las=2,
+        names.arg=c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")[as.numeric(levels(flight.data.new$month))],
         main="Variable: Month of Flight",
 col="darkblue",ylab="Number of Flights")
 ```
@@ -98,7 +105,8 @@ col="darkblue",ylab="Number of Flights")
 # Day of Week for Flight
 
 barplot(table(flight.data.new$day), las=2,
-        main="Variable: Day of Week \n 1=Monday, 7=Sunday",
+        names.arg=c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+        main="Variable: Day of Week",
 col="darkgreen")
 ```
 
@@ -145,7 +153,7 @@ mosaicplot(flight.data.new$month ~ flight.data.new$delay, cex.axis=1,
 
 
 ```{r}
-# plot a mosaic plot for two variables: here it is delay by week
+# plot a mosaic plot for two variables: here it is delay by day of week
 
 mosaicplot(flight.data.new$day ~ flight.data.new$delay, cex.axis=1,
            main="Delay by Day of Week", shade=FALSE, 
