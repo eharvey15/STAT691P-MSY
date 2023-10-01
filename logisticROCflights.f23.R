@@ -47,17 +47,17 @@ set.seed(134562)
 
 # First, create data types
 
-flight.data.types <- c('month',   # Month
-                       'day',    # Day of Week 
-                       'carrier',    # Carrier 
-                       'origin',    # origin airport
-                       'orstate',    # origin state
-                       'dest',    # destination airport
-                       'destate',    # destination state
-                       'depart',    # Departure Time
-                       'delay', #  on time or not 
-                       'duration',    # elapsed time (duration)
-                       'distance'    # distance
+flight.data.types <- c('factor',    # Month
+                       'factor',    # Day of Week 
+                       'factor',    # Carrier 
+                       'factor',    # origin airport
+                       'factor',    # origin state
+                       'factor',    # destination airport
+                       'factor',    # destination state
+                       'numeric',   # Departure Time
+                       'numeric',   # on time or not 
+                       'numeric',   # elapsed time (duration)
+                       'numeric'    # distance
 )
 
 missing.values <- c("NA","")
@@ -74,7 +74,8 @@ missing.values <- c("NA","")
 ##### NEED TO CHANGE FILE NAME FOR YOUR DATA SET #####
 
 
-flight.data <- read.csv("~/Desktop/Fall 2023/Stats 691P/NewOrlFlights2022.csv")
+flight.data <- read.csv("./NewOrlFlights2022.csv",
+                        colClasses=flight.data.types, na.strings=missing.values)
 
 
 # copy the data set to a new name, so that the original data set
