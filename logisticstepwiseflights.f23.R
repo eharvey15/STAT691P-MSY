@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 # remove all saved values from R
 
 rm(list=ls())
@@ -51,17 +40,17 @@ set.seed(234865)
 
 # First, create data types
 
-flight.data.types <- c('factor',   # Month
-                        'factor',    # Day of Week 
-                        'factor',    # Carrier 
-                        'factor',    # origin airport
-                        'factor',    # origin state
-                        'factor',    # destination airport
-                        'factor',    # destination state
-                        'numeric',    # Departure Time
-                        'numeric', #  on time or not 
-                        'numeric',    # elapsed time (duration)
-                        'numeric'    # distance
+flight.data.types <- c('factor',    # Month
+                       'factor',    # Day of Week
+                       'factor',    # Carrier
+                       'factor',    # origin airport
+                       'factor',    # origin state
+                       'factor',    # destination airport
+                       'factor',    # destination state
+                       'numeric',   # Departure Time
+                       'numeric',   # on time or not
+                       'numeric',   # elapsed time (duration)
+                       'numeric'    # distance
 )
 
 missing.values <- c("NA","")
@@ -78,8 +67,11 @@ missing.values <- c("NA","")
 ##### NEED TO CHANGE FILE NAME FOR YOUR DATA SET #####
 
 
-flight.data <- read.csv("c:/temp/flights2022.f23.csv",
-colClasses=flight.data.types,na.strings=missing.values)
+flight.data <- read.csv(
+  "./NewOrlFlights2022.csv",
+  colClasses=flight.data.types,
+  na.strings=missing.values
+)
 
 
 # copy the data set to a new name, so that the original data set
@@ -89,12 +81,29 @@ colClasses=flight.data.types,na.strings=missing.values)
 flight.data.new <- flight.data
 
 
+# Relabel months from indices to names
+# Not all months are present, so levels are determined from data
+months.names <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+flight.data.new$month <- factor(
+  months.names[flight.data.new$month],
+  levels = months.names[sort(as.numeric(levels(flight.data.new$month)))]
+)
+
+# Relabel days from indices to names
+days.names <- c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+flight.data.new$day <- factor(
+  days.names[flight.data.new$day],
+  levels = days.names
+)
+
+
 # create PDF file for output
 ##### NEED TO CHANGE SUBDIRECTORY FOR FILE LOCATION #####
 ##### CAN CHANGE FILE NAME FOR YOUR DATA SET #####
 
 
-pdf("c:/temp/flightlogistic.f23.pdf")
+pdf("./MSYflightlogistic.f23.pdf")
 
 
 
@@ -151,7 +160,7 @@ flight.logistic.step1.pre <- glm(delay ~ (day + depart + duration + month)^2 + c
 
 # "test="F"" is to test using the F test statistic
 
-flight.logistic.step1 <- step(flight.logistic.step1.pre,direction="backward",test="F")
+flight.logistic.step1 <- step(flight.logistic.step1.pre, direction="backward", test="F")
 
 summary(flight.logistic.step1)
 
@@ -167,7 +176,7 @@ flight.logistic.step2.pre <- glm(delay ~ (day + depart + duration + month)^2 + c
 
 # "test="F"" is to test using the F test statistic
 
-flight.logistic.step2 <- step(flight.logistic.step2.pre,direction="backward",test="F")
+flight.logistic.step2 <- step(flight.logistic.step2.pre, direction="backward", test="F")
 
 summary(flight.logistic.step2)
 
