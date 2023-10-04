@@ -200,7 +200,10 @@ summary(flight.logistic.step2)
 #  leaving most significant carrier destinations
 #  (which would ideally align with higher volume carrier destinations from MSY)
 
-flight.logistic.step3.pre <- glm(delay ~ (day + depart + duration + month)^3 + (carrier + dest)^2,
+# The preference here would be to use two-term effects of carrier, dest
+#  but due to the high number of unique categories, glm does not converge
+
+flight.logistic.step3.pre <- glm(delay ~ (day + depart + duration + month)^3 + carrier + dest,
                                  data=train.batch,
                                  family=binomial("logit"))
 
