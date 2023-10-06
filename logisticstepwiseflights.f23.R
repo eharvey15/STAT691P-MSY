@@ -195,7 +195,7 @@ summary(flight.logistic.step2)
 
 #### Use three-term interactions and lower terms for day, depart, duration, and month
 
-# Add two-term main effect of destination airport with carrier
+# Add main effect of destination airport along with carrier
 # Most of these terms should hopefully drop out due to backward stepwise regression
 #  leaving most significant carrier destinations
 #  (which would ideally align with higher volume carrier destinations from MSY)
