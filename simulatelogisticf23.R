@@ -117,14 +117,14 @@ x3 <- x[,3]
 
 # create independent normally distributed predictors
 
-x4 <- round(rnorm(N, mean=2, sd=1), 6)
+x4 <- round(rnorm(N, mean=2, sd=10), 6) # Increase std. dev. to 10
 
-x5 <- round(rnorm(N, mean=-2, sd=1), 6)
+x5 <- round(rnorm(N, mean=-2, sd=5), 6) # Increase std. dev. to 5
 
 # create a binary predictor; can change prob. of success
 # of "0.3" to higher or lower
 
-x6 <- rbinom(N, 1, prob=0.3)
+x6 <- rbinom(N, 1, prob=0.5)
 
 
 #### create new variables based on the first 6 predictors
@@ -144,8 +144,8 @@ x12 <- x1 * x2 * x6
 # assign values for beta values (regression coefficients)
 
 
-b1 <- 0.082
-b2 <- -0.21
+b1 <- 0.82
+b2 <- 0.61
 b3 <- 1.05
 b4 <- -0.65
 b5 <- 0.73
@@ -153,10 +153,10 @@ b6 <- 0.5
 
 b7 <- 0.06
 b8 <- -0.07
-b9 <- 0.09
+b9 <- 1.09
 b10 <- 1.1
 b11 <- -1.4
-b12 <- 0.12
+b12 <- 0.45
 
 
 ---------------------------------
