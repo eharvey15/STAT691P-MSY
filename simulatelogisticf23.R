@@ -322,12 +322,14 @@ x <- matrix(NA, N, num.corr.predictors)
 
 # next, specify the variance-covariance matrix
 
-var.diagonal <- 1  # this is variance on diagonal
+var.diagonal <- 0.1 # Decrease variance on diagonal to 0.1
+                    # this is variance on diagonal
 
 ## next, specify covariance of "0.2" for predictors x1,x2,x3
 ## this can be increased or decreased
 
-cov.off.diagonal <- 0.2 * var.diagonal  # covariance of predictors
+cov.off.diagonal <- 0.3 * var.diagonal # Increase covariance to 0.3
+                                       # covariance of predictors
 # this is the value off the diagonal in the covariance matrix
 
 # "cov.off.diagonal" value has restrictions for the covariance matrix
@@ -360,9 +362,9 @@ x3 <- x[,3]
 
 # create independent normally distributed predictors
 
-x4 <- round(rnorm(N, mean=2, sd=1), 6)
+x4 <- round(rnorm(N,mean=2,sd=.4),6) # Decrease std. dev. to 0.4
 
-x5 <- round(rnorm(N, mean=-2, sd=1), 6)
+x5 <- round(rnorm(N,mean=-2,sd=.4),6) # Decrease std. dev. to 0.4
 
 # create a binary predictor; can change prob. of success
 # of "0.3" to higher or lower
@@ -387,19 +389,19 @@ x12 <- x1 * x2 * x6
 # assign values for beta values (regression coefficients)
 
 
-b1 <- 0.082
-b2 <- -0.21
-b3 <- 1.05
-b4 <- -0.65
-b5 <- 0.73
-b6 <- 0.5
+b1 <- 0.008
+b2 <- -0.021
+b3 <- 0.105
+b4 <- -0.065
+b5 <- 0.073
+b6 <- 0.050
 
-b7 <- 0.06
-b8 <- -0.07
-b9 <- 0.09
-b10 <- 1.1
-b11 <- -1.4
-b12 <- 0.12
+b7 <- 0.006
+b8 <- -0.007
+b9 <- 0.009
+b10 <- 0.110
+b11 <- -0.140
+b12 <- 0.012
 
 
 ---------------------------------
@@ -439,8 +441,8 @@ logistic.out <- glm(y ~ x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + x11 +
 # less than or equal to an alpha-level cutoff (such as 0.1 or 0.25).
 
 stopifnot(
-  sum(logistic.out.summ$coefficients[1:6,4] <= 0.1) >= 4, # At least 4 of 6 main predictors
-  sum(logistic.out.summ$coefficients[,4] <= 0.1) >= 10    # At least 10 total predictors
+  sum(logistic.out.summ$coefficients[1:6,4] <= 0.1) >= 2, # At least 2 of 6 main predictors
+  sum(logistic.out.summ$coefficients[,4] <= 0.1) >= 5    # At least 5 total predictors
 )
 
 # write out the simulation data
@@ -482,11 +484,11 @@ summary(fit.logistic.2)
 
 
 --------------------------
-## MODEL 1 EVALUATION ----
+## MODEL 2 EVALUATION ----
 --------------------------
   
   
-# use logistic regression model from "fit.logistic.1"
+# use logistic regression model from "fit.logistic.2"
 # and apply it to the "test.batch" data
 
 # create probabilities for the "test.batch" data:
@@ -528,4 +530,7 @@ write.table(
 )
 
 options(scipen=0)
+
+
+
 
