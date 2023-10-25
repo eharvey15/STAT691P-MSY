@@ -1,14 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
 # remove all saved values from R
 
 rm(list=ls())
@@ -47,63 +38,55 @@ set.seed(234865)
 
 # First, create data types
 
-train.data.types <- c('numeric', #  rownum
-                        'factor',   # y
+train.data.types <- c('numeric',   # rownum
+                        'factor',  # y
                         'numeric', # x1
                         'numeric', # x2
-                        'numeric',  # x3
+                        'numeric', # x3
                         'numeric', # x4
                         'numeric', # x5
                         'numeric'  # x6
 )
 
-test.data.types <- c('numeric', #  rownum
+test.data.types <- c('numeric',    # rownum
                         'numeric', # x1
                         'numeric', # x2
-                        'numeric',  # x3
+                        'numeric', # x3
                         'numeric', # x4
                         'numeric', # x5
                         'numeric'  # x6
 )
 
 
+# The following commands read in the data files.
 
+train.data.pre <- read.table(
+    "./highAUC.train.data.txt",
+    colClasses=train.data.types,
+    header=T
+)
 
-# The following commands read in the data files. 
-
-##### NEED TO CHANGE SUBDIRECTORY FOR DATA LOCATION #####
-
-##### NEED TO CHANGE FILE NAME FOR YOUR DATA SET #####
-
-
-train.data.pre <- read.table("c:/temp/highAUC.train.data.txt",
-colClasses=train.data.types,header=T)
-
-test.data.pre <- read.table("c:/temp/highAUC.test.data.txt",
-colClasses=test.data.types,header=T)
-
+test.data.pre <- read.table(
+    "./highAUC.test.data.txt",
+    colClasses=test.data.types,
+    header=T
+)
 
 
 # copy the data set to a new name, so that the original data set
 # can be used again:
-
 
 train.data <- train.data.pre
 
 test.data <- test.data.pre
 
 
-
 # create PDF file for output
-##### NEED TO CHANGE SUBDIRECTORY FOR FILE LOCATION #####
-##### CAN CHANGE FILE NAME FOR YOUR DATA SET #####
 
-
-pdf("c:/temp/simulate.f23.pdf")
+pdf("./data/simulate.f23.pdf")
 
 
 ### copy data to a new name
-
 
 train.data.fin <- train.data
 
@@ -120,7 +103,6 @@ train.batch <- data.frame(train.data.fin[training.rows, ])
 validate.batch <- data.frame(train.data.fin[-training.rows, ])
 
 
-
 ###########################
 #### START STEPWISE HERE
 #### MODEL CAN BE CHANGED
@@ -133,9 +115,16 @@ validate.batch <- data.frame(train.data.fin[-training.rows, ])
 # "poly(x1,degree=3,raw=TRUE)[,2:3]" uses only the second and third
 # column, which are: x1^2, x1^3 
 
-fit.logistic.step1.pre <- glm(y ~ (x1 + x2 + x3 + x4 + x5)^3 + x6 + poly(x1,degree=3,raw=TRUE)[,2:3] + poly(x2,degree=3,raw=TRUE)[,2:3] + poly(x3,degree=3,raw=TRUE)[,2:3] + poly(x4,degree=3,raw=TRUE)[,2:3] + poly(x5,degree=3,raw=TRUE)[,2:3],data=train.batch,family=binomial("logit"))
+fit.logistic.step1.pre <- glm(y ~ (x1 + x2 + x3 + x4 + x5)^3 + x6 + 
+                                  poly(x1, degree=3, raw=TRUE)[,2:3] + 
+                                  poly(x2, degree=3, raw=TRUE)[,2:3] + 
+                                  poly(x3, degree=3, raw=TRUE)[,2:3] + 
+                                  poly(x4, degree=3, raw=TRUE)[,2:3] + 
+                                  poly(x5, degree=3, raw=TRUE)[,2:3],
+                              data=train.batch,
+                              family=binomial("logit"))
 
-fit.logistic.step1 <- step(fit.logistic.step1.pre,direction="backward")
+fit.logistic.step1 <- step(fit.logistic.step1.pre, direction="backward")
 
 summary(fit.logistic.step1)
 
@@ -161,17 +150,13 @@ as.numeric(validate_roc1$auc)
 
 # plot the ROC curve and show AUC on curve
 
-# NEED TO EDIT THE TITLE FOR WHICH MODEL
-
-plot(validate_roc1,main="ROC Curve for \n Stepwise Logistic Regression 1",print.auc=TRUE)
+plot(validate_roc1,main="ROC Curve for \n Stepwise Logistic Regression 1", print.auc=TRUE)
 
 
-
-
-##########
-
-
-### MODEL PREDICTION FOR TEST DATA (that has unknown outcome)
+########################################
+###### MODEL PREDICTION FOR TEST DATA
+######   (that has unknown outcome)
+########################################
 
 # use logistic regression model from "fit.logistic.step1"
 # and apply it to the "test.data" (that has unknown outcome)
@@ -187,29 +172,23 @@ test_prob2 <- predict(fit.logistic.step1, newdata = test.data, type = "response"
 test.data.predict.y <- as.numeric(test_prob2 > 0.5)
 
 
-
 #### THIS IS THE LAST STEP
 #### write out rownum, predicted y for test.data
 
-
-predict.test.data <- cbind(test.data[,1],test.data.predict.y)
+predict.test.data <- cbind(test.data[,1], test.data.predict.y)
 
 predict.colnames <- c("rownum","predicty")
 
 # write out the rownum and predicted y for test.data
 
 options(scipen=10)
-write.table(predict.test.data,
-"c:/temp/predict.HighAUC.testdata.txt",sep="\t",
-row.names=F,col.names=predict.colnames)
+write.table(
+    predict.test.data,
+    "./data/predict.HighAUC.testdata.txt",sep="\t",
+    row.names=F,
+    col.names=predict.colnames
+)
 options(scipen=0)
 
-
-
 graphics.off()
-
-
-
-
-
 
