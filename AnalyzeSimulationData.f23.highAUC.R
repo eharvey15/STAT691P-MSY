@@ -83,7 +83,7 @@ test.data <- test.data.pre
 
 # create PDF file for output
 
-pdf("./data/simulate.f23.pdf")
+pdf("./highAUC.simulate.f23.pdf")
 
 
 ### copy data to a new name
