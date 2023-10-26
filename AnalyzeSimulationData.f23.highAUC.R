@@ -103,14 +103,16 @@ train.batch <- data.frame(train.data.fin[training.rows, ])
 validate.batch <- data.frame(train.data.fin[-training.rows, ])
 
 
-###########################
-#### START STEPWISE HERE
-#### MODEL CAN BE CHANGED
-#### CAN USE DIFFERENT METHODS SUCH AS LASSO, AND DIFFERENT STARTING MODEL
-###########################
+###############################################
+#### MODEL FITTING
+#### STEPWISE / LASSO / BAYESIAN INFERENCE
+###############################################
 
-# use a model with all three-term interactions and
-# polynomial terms up to third-order for all variables.
+## Model 1 (Stepwise with high-order interactions and polynomials of x1-x5)
+
+# Use a model with all three-term interactions and
+#  polynomial terms up to third-order for all variables x1-x5
+# Also include a main effect of x6
 
 # "poly(x1,degree=3,raw=TRUE)[,2:3]" uses only the second and third
 # column, which are: x1^2, x1^3 
@@ -129,28 +131,105 @@ fit.logistic.step1 <- step(fit.logistic.step1.pre, direction="backward")
 summary(fit.logistic.step1)
 
 
+## Model 2 (Lasso with  higher-order interactions of x1-x6 and polynomials of x1-x5)
+
+# Use a model with all three-term interactions and
+#  polynomial terms up to third-order for all variables x1-x5
+# Also include two-term interactions between all variables x1-x6
+
+# Use Lasso regression to reduce the number of sub-models assessed
+#  1. Fit GLM with lasso to find OLS estimates while minimizing # of terms
+#  2. Cross-validate to find tuning parameter (lambda) that minimizes model MSE
+#  3. Obtain coefficients of model at best lambda
+
+fit.logistic.lasso1.matrix <- model.matrix(y ~ (x1 + x2 + x3 + x4 + x5)^3 + 
+                                               (x1 + x6)^2 +
+                                               (x2 + x6)^2 + 
+                                               (x3 + x6)^2 + 
+                                               (x4 + x6)^2 + 
+                                               (x5 + x6)^2 + 
+                                               poly(x1, degree=3, raw=TRUE)[,2:3] + 
+                                               poly(x2, degree=3, raw=TRUE)[,2:3] + 
+                                               poly(x3, degree=3, raw=TRUE)[,2:3] + 
+                                               poly(x4, degree=3, raw=TRUE)[,2:3] + 
+                                               poly(x5, degree=3, raw=TRUE)[,2:3],
+                                           data=train.batch)[,-1]
+
+fit.logistic.lasso1.glm <- glmnet(
+    fit.logistic.lasso1.matrix,
+    y=as.factor(train.batch$y),
+    alpha=1,
+    family="binomial"
+)
+
+fit.logistic.lasso1.glm.cv = cv.glmnet(
+    fit.logistic.lasso1.matrix,
+    y=as.numeric(train.batch$y),
+    alpha=1
+)
+plot(fit.logistic.lasso1.glm.cv)
+title("Cross-validation of Lasso Logistic Regression 1", line=3)
+fit.logistic.lasso1.lambda <- fit.logistic.lasso1.glm.cv$lambda.min
+
+(fit.logistic.lasso1 <- coef(fit.logistic.lasso1.glm, s=fit.logistic.lasso1.lambda))
+
+
+# Model 3 (Bayesian inference?)
+
+# https://biostat.app.vumc.org/wiki/pub/Main/StatisticalComputingSeries/bayes_reg_rstanarm.html
+
 
 ############################
 ###### MODEL EVALUATION
 ###### CHECK AUC VALUE
 ############################
 
+## Model 1 (Stepwise with high-order interactions and polynomials of x1-x5)
 
 # use logistic regression model from "fit.logistic.step1"
 # and apply it to the "validate.batch" data
 
 # create probabilities for the "validate.batch" data:
 
-validate_prob1 <- predict(fit.logistic.step1, newdata = validate.batch, type = "response")
+validate.step1.prob <- predict(fit.logistic.step1, newdata = validate.batch, type = "response")
 # create ROC curve information and AUC
 
-validate_roc1 <- roc(validate.batch$y ~ validate_prob1, plot = FALSE, print.auc = TRUE)
+validate.step1.roc <- roc(validate.batch$y ~ validate.step1.prob, plot = FALSE, print.auc = TRUE)
 
-as.numeric(validate_roc1$auc)
+(validate.step1.auc = as.numeric(validate.step1.roc$auc))
 
 # plot the ROC curve and show AUC on curve
 
-plot(validate_roc1,main="ROC Curve for \n Stepwise Logistic Regression 1", print.auc=TRUE)
+plot(validate.step1.roc, main = "ROC Curve for \n Stepwise Logistic Regression 1", print.auc = TRUE)
+
+
+## Model 2 (Lasso with  higher-order interactions of x1-x6 and polynomials of x1-x5)
+
+validate.lasso1.matrix <- model.matrix(y ~ (x1 + x2 + x3 + x4 + x5)^3 + 
+                                           (x1 + x6)^2 +
+                                           (x2 + x6)^2 + 
+                                           (x3 + x6)^2 + 
+                                           (x4 + x6)^2 + 
+                                           (x5 + x6)^2 + 
+                                           poly(x1, degree=3, raw=TRUE)[,2:3] + 
+                                           poly(x2, degree=3, raw=TRUE)[,2:3] + 
+                                           poly(x3, degree=3, raw=TRUE)[,2:3] + 
+                                           poly(x4, degree=3, raw=TRUE)[,2:3] + 
+                                           poly(x5, degree=3, raw=TRUE)[,2:3],
+                                       data=validate.batch)[,-1]
+
+validate.lasso1.prob1 <- as.vector(predict(
+    fit.logistic.lasso1.glm,
+    s=fit.logistic.lasso1.lambda,
+    validate.lasso1.matrix,
+    type="response"
+))
+
+validate.lasso1.roc = roc(validate.batch$y ~ validate.lasso1.prob1, plot = FALSE, print.auc = TRUE)
+
+(validate.lasso1.auc = as.numeric(validate.lasso1.roc$auc))
+
+plot(validate.lasso1.roc, main = "ROC Curve for \n Lasso Logistic Regression 1", print.auc = TRUE)
 
 
 ########################################
@@ -158,18 +237,23 @@ plot(validate_roc1,main="ROC Curve for \n Stepwise Logistic Regression 1", print
 ######   (that has unknown outcome)
 ########################################
 
+# Select model that outputs highest validation AUC
+model.index = which.max(c(validate.step1.auc, validate.lasso1.auc))
+
+fit.logistic.model = c(fit.logistic.step1, fit.logistic.lasso1)[model.index]
+
 # use logistic regression model from "fit.logistic.step1"
 # and apply it to the "test.data" (that has unknown outcome)
 
 # create probabilities for the "test.data":
 
-test_prob2 <- predict(fit.logistic.step1, newdata = test.data, type = "response")
+test_prob <- predict(fit.logistic.model, newdata = test.data, type = "response")
 
 
 ## predict y from probabilities for "test.data", using 0.5 cutoff
 
 
-test.data.predict.y <- as.numeric(test_prob2 > 0.5)
+test.data.predict.y <- as.numeric(test_prob > 0.5)
 
 
 #### THIS IS THE LAST STEP
