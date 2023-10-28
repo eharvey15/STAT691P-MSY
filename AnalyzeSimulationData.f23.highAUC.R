@@ -157,6 +157,8 @@ plot(validate_roc1,main="ROC Curve for \n Backward Stepwise Logistic Regression"
 
 
 #### SAME PROCESS FOR FORWARD STEPWISE
+
+
 fit.logistic.step2 <- step(fit.logistic.step1.pre, direction="forward")
 
 summary(fit.logistic.step2)
