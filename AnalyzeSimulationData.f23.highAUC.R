@@ -178,7 +178,7 @@ fit.logistic.lasso1.lambda <- fit.logistic.lasso1.glm.cv$lambda.min
 
 # Model 3 (Bayesian model averaging)
 
-# Use both initial models used in 1 and 2
+# Use both initial models used in 1 and 2 as well as four simpler models
 
 # Use Bayesian model averaging to increase explained variance further
 #  https://biostat.app.vumc.org/wiki/pub/Main/StatisticalComputingSeries/bayes_reg_rstanarm.html
@@ -236,6 +236,8 @@ fit.logistic.bayes1.glm <- fitBayesLogistic(bayes1.formula <- y ~ (x1 + x2 + x3 
                                                 poly(x4, degree=3, raw=TRUE)[,2:3] + 
                                                 poly(x5, degree=3, raw=TRUE)[,2:3])
 
+summary(fit.logistic.bayes1.glm)
+
 # Fit second Bayesian model
 fit.logistic.bayes2.glm <- fitBayesLogistic(bayes2.formula <- y ~ (x1 + x2 + x3 + x4 + x5)^3 + 
                                                 (x1 + x6)^2 +
@@ -249,17 +251,27 @@ fit.logistic.bayes2.glm <- fitBayesLogistic(bayes2.formula <- y ~ (x1 + x2 + x3 
                                                 poly(x4, degree=3, raw=TRUE)[,2:3] + 
                                                 poly(x5, degree=3, raw=TRUE)[,2:3])
 
+summary(fit.logistic.bayes2.glm)
+
 # Fit third Bayesian model
 fit.logistic.bayes3.glm <- fitBayesLogistic(y ~ (x1 + x2 + x3 + x4 + x5)^2 + x6)
+
+summary(fit.logistic.bayes3.glm)
 
 # Fit fourth Bayesian model
 fit.logistic.bayes4.glm <- fitBayesLogistic(y ~ (x1 + x2 + x3 + x4 + x5)^3 + x6)
 
+summary(fit.logistic.bayes4.glm)
+
 # Fit fifth Bayesian model
 fit.logistic.bayes5.glm <- fitBayesLogistic(y ~ (x1 + x2 + x3 + x4 + x5 + x6)^2)
 
+summary(fit.logistic.bayes5.glm)
+
 # Fit sixth Bayesian model
 fit.logistic.bayes6.glm <- fitBayesLogistic(y ~ (x1 + x2 + x3 + x4 + x5 + x6)^3)
+
+summary(fit.logistic.bayes6.glm)
 
 
 ############################
@@ -347,18 +359,18 @@ plot(validate.bayes3.roc, print.auc = TRUE, print.auc.y = 0.4, add = TRUE)
 plot(validate.bayes4.roc, print.auc = TRUE, print.auc.y = 0.3, add = TRUE)
 plot(validate.bayes5.roc, print.auc = TRUE, print.auc.y = 0.2, add = TRUE)
 plot(validate.bayes6.roc, print.auc = TRUE, print.auc.y = 0.1, add = TRUE)
-title("ROC Curves for Bayesian \n Inference Logistic Regressions", line=1)
+title("ROC Curves for Bayesian \n Inference Logistic Regressions", line=2)
 
 # Average all Bayesian models, assuming that each are equally likely
-validate.bayes.prob <- (
+validate.bayes.avg.prob <- (
     validate.bayes1.prob + validate.bayes2.prob + 
     validate.bayes3.prob + validate.bayes4.prob + 
     validate.bayes5.prob + validate.bayes6.prob
     ) / 6
-validate.bayes.roc <- roc(validate.batch$y ~ validate.bayes.prob, plot = FALSE, print.auc = TRUE)
-(validate.bayes.auc <- as.numeric(validate.bayes.roc$auc))
+validate.bayes.avg.roc <- roc(validate.batch$y ~ validate.bayes.avg.prob, plot = FALSE, print.auc = TRUE)
+(validate.bayes.avg.auc <- as.numeric(validate.bayes.roc$auc))
 
-plot(validate.bayes.roc, main = "ROC Curve for Averaged \n Bayesian Inference Logistic Regression", print.auc = TRUE)
+plot(validate.bayes.avg.roc, main = "ROC Curve for Averaged \n Bayesian Inference Logistic Regression", print.auc = TRUE)
 
 
 ########################################
@@ -367,9 +379,19 @@ plot(validate.bayes.roc, main = "ROC Curve for Averaged \n Bayesian Inference Lo
 ########################################
 
 # Select model that outputs highest validation AUC
-model.index <- which.max(c(validate.step1.auc, validate.lasso1.auc, validate.bayes.auc))
+model.index <- which.max(c(
+    validate.step1.auc,
+    validate.lasso1.auc,
+    validate.bayes1.auc,
+    validate.bayes2.auc,
+    validate.bayes3.auc,
+    validate.bayes4.auc,
+    validate.bayes5.auc,
+    validate.bayes6.auc,
+    validate.bayes.avg.auc
+))
 
-if (model.index == 3) {
+if (model.index == 9) {
     # Create probabilities for each Bayesian model and average under equal likelihood assumption
     test.bayes1.prob <- predict(fit.logistic.bayes1.glm, newdata = test.data, type = "response")
     test.bayes2.prob <- predict(fit.logistic.bayes2.glm, newdata = test.data, type = "response")
@@ -386,7 +408,17 @@ if (model.index == 3) {
 } else {
     # Use chosen logistic regression model
     #  and apply it to the "test.data" (that has unknown outcome)
-    fit.logistic.model <- list(fit.logistic.step1, fit.logistic.lasso1, "bayesian (skip)")[[model.index]]
+    fit.logistic.model <- list(
+        fit.logistic.step1,
+        fit.logistic.lasso1,
+        fit.logistic.bayes1.glm,
+        fit.logistic.bayes2.glm,
+        fit.logistic.bayes3.glm,
+        fit.logistic.bayes4.glm,
+        fit.logistic.bayes5.glm,
+        fit.logistic.bayes6.glm,
+        "bayesian (skip)"
+    )[[model.index]]
     
     # Create probabilities for the "test.data":
     test_prob <- predict(fit.logistic.model, newdata = test.data, type = "response")
