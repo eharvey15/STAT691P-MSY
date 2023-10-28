@@ -104,11 +104,10 @@ validate.batch <- data.frame(train.data.fin[-training.rows, ])
 
 
 ###############################################
-#### MODEL FITTING
-#### STEPWISE / LASSO / BAYESIAN INFERENCE
+#### MODEL FITTING for backward stepwise
 ###############################################
 
-## Model 1 (Stepwise with high-order interactions and polynomials of x1-x5)
+## Model 1 (Backward Stepwise with high-order interactions and polynomials of x1-x5)
 
 # Use a model with all three-term interactions and
 #  polynomial terms up to third-order for all variables x1-x5
@@ -131,7 +130,7 @@ fit.logistic.step1 <- step(fit.logistic.step1.pre, direction="backward")
 summary(fit.logistic.step1)
 
 ############################
-###### MODEL EVALUATION
+###### MODEL EVALUATION for BACKWARDS STEPWISE
 ###### CHECK AUC VALUE
 ############################
 
@@ -154,6 +153,33 @@ as.numeric(validate_roc1$auc)
 
 plot(validate_roc1,main="ROC Curve for \n Backward Stepwise Logistic Regression",print.auc=TRUE)
 
+
+#### SAME PROCESS FOR FORWARD STEPWISE
+fit.logistic.step2 <- step(fit.logistic.step1.pre, direction="forward")
+
+summary(fit.logistic.step2)
+
+
+# use logistic regression model from "fit.logistic.step1"
+# and apply it to the "validate.batch" data
+
+# create probabilities for the "validate.batch" data:
+
+validate_prob2 <- predict(fit.logistic.step2, newdata = validate.batch, type = "response")
+# create ROC curve information and AUC
+
+validate_roc2 <- roc(validate.batch$y ~ validate_prob2, plot = FALSE, print.auc = TRUE)
+
+as.numeric(validate_roc2$auc)
+
+# plot the ROC curve and show AUC on curve
+
+# NEED TO EDIT THE TITLE FOR WHICH MODEL
+
+plot(validate_roc2,main="ROC Curve for \n Forward Stepwise Logistic Regression",print.auc=TRUE)
+
+
+######
 
 ## Model 2 (Lasso with  higher-order interactions of x1-x6 and polynomials of x1-x5)
 
