@@ -161,8 +161,11 @@ highAUC.logistic.true <- glm(update.formula(highAUC.formula.true, ~ . -1), famil
 highAUC.logistic.true$coefficients <- sapply(names(highAUC.logistic.true$coefficients), function(x) { matchedTrueCoefValue(x) })
 
 # Resim "true" response so that a all aspects of control are known, then fit against with last week's prediction model
-head(highAUC.resim.prob) <- predict(highAUC.logistic.true, newdata = resim.data, type = "response")
-highAUC.resim.y <- as.numeric(highAUC.resim.prob > 0.5)
+highAUC.resim.prob <- predict(highAUC.logistic.true, newdata = resim.data, type = "response")
+highAUC.resim.y <- numeric(length = N)
+for (i in 1:N) {
+    highAUC.resim.y[i] <- rbinom(1, 1, highAUC.resim.prob[i])
+}
 
 # Specify estimated coefficients used for response predictions
 highAUC.logistic.predict <- glm(update.formula(highAUC.formula.predict, ~ . -1), family=binomial("logit"))
