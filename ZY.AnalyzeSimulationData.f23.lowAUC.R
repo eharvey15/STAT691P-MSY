@@ -140,8 +140,8 @@ summary(fit.logistic.step2)
 ## Model 2 (Lasso with higher-order interactions between x1 to x5 and x6 and polynomials for x1-x5)
 
 fit.logistic.lasso2.matrix <- model.matrix(y ~ (x1 + x2 + x3 + x4 + x5) +
-                                             I((x1 + x2 + x3 + x4 + x5)^2) +  # Adding second-degree interactions
-                                             I((x1 + x2 + x3 + x4 + x5)^3) +  # Adding third-degree interactions
+                                             #I((x1 + x2 + x3 + x4 + x5)^2) +  # Adding second-degree interactions
+                                             #I((x1 + x2 + x3 + x4 + x5)^3) +  # Adding third-degree interactions
                                              (x1 + x6)^2 +
                                              (x2 + x6)^2 +
                                              (x3 + x6)^2 +
@@ -203,8 +203,8 @@ plot(validate.step2.roc2,main="ROC Curve for \n Stepwise Logistic Regression 2",
 ## Model 2 (Lasso with higher-order interactions between x1 to x5 and x6 and polynomials for x1-x5)
 
 validate.lasso2.matrix <- model.matrix(y ~ (x1 + x2 + x3 + x4 + x5) +
-                                         I((x1 + x2 + x3 + x4 + x5)^2) +  # Adding second-degree interactions
-                                         I((x1 + x2 + x3 + x4 + x5)^3) +  # Adding third-degree interactions
+                                         #I((x1 + x2 + x3 + x4 + x5)^2) +  # Adding second-degree interactions
+                                         #I((x1 + x2 + x3 + x4 + x5)^3) +  # Adding third-degree interactions
                                          (x1 + x6)^2 +
                                          (x2 + x6)^2 +
                                          (x3 + x6)^2 +
@@ -270,7 +270,7 @@ predict.colnames <- c("rownum","predicty")
 
 options(scipen=10)
 write.table(predict.test.data,
-"~/Documents/Stat 691P/Ass7/predict.LowAUC.testdata.txt",sep="\t",
+"~/Documents/Stat 691P/Ass7/new.predict.LowAUC.testdata.txt",sep="\t",
 row.names=F,col.names=predict.colnames)
 options(scipen=0)
 

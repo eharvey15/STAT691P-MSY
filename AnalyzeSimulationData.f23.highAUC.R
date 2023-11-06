@@ -174,7 +174,7 @@ validate_prob2 <- predict(fit.logistic.step2, newdata = validate.batch, type = "
 
 validate_roc2 <- roc(validate.batch$y ~ validate_prob2, plot = FALSE, print.auc = TRUE)
 
-as.numeric(validate_roc2$auc)
+(validate.step2.auc <- as.numeric(validate_roc2$auc))
 
 # plot the ROC curve and show AUC on curve
 
@@ -433,6 +433,7 @@ plot(validate.bayes.avg.roc, main = "ROC Curve for Averaged \n Bayesian Inferenc
 # Select model that outputs highest validation AUC
 model.index <- which.max(c(
     validate.step1.auc,
+    validate.step2.auc,
     validate.lasso1.auc,
     validate.bayes1.auc,
     validate.bayes2.auc,
@@ -443,7 +444,7 @@ model.index <- which.max(c(
     validate.bayes.avg.auc
 ))
 
-if (model.index == 9) {
+if (model.index == 10) {
     # Create probabilities for each Bayesian model and average under equal likelihood assumption
     test.bayes1.prob <- predict(fit.logistic.bayes1.glm, newdata = test.data, type = "response")
     test.bayes2.prob <- predict(fit.logistic.bayes2.glm, newdata = test.data, type = "response")
@@ -462,6 +463,7 @@ if (model.index == 9) {
     #  and apply it to the "test.data" (that has unknown outcome)
     fit.logistic.model <- list(
         fit.logistic.step1,
+        fit.logistic.step2,
         fit.logistic.lasso1,
         fit.logistic.bayes1.glm,
         fit.logistic.bayes2.glm,
