@@ -32,11 +32,11 @@ ui <- fluidPage(
       checkboxGroupInput(inputId = "day", 
                          label = "Day of the Week",
                          choices = list("Monday" = 1, "Tuesday" = 2, "Wednesday" = 3, "Thursday" = 4, "Friday" = 5, "Saturday" = 6, "Sunday" = 7),
-                         selected = 1),
+                         selected = seq(1:7)),
       checkboxGroupInput(inputId = "month",
                          label = "Month",
                          choices = list("April" = 4, "May" = 5, "June" = 6, "July" = 7, "August" = 8, "September" = 9, "October" = 10, "November" = 11, "December" = 12),
-                         selected = 4)
+                         selected = seq(from = 4, to =12, by =1))
       
     ),
     
