@@ -3,13 +3,44 @@ library(shiny)
 library(tidyverse)
 library(ggthemes)
 library(scales)
+library(plotly)
 
 data <- read.csv("https://raw.githubusercontent.com/eharvey15/STAT691P-MSY/master/NewOrlFlights2022.csv")
 
+
 data$delay <- as.factor(data$delay)
 
+#retrieve airport names
 airports <- unique(data$dest)
+
+#retrieve carrier names
 carriers <- unique(data$carrier)
+
+#get airport info from external source
+airport_info <- read.csv("https://raw.githubusercontent.com/ip2location/ip2location-iata-icao/master/iata-icao.csv")
+
+#filter out non-US airports
+airport_info <- airport_info %>% filter(country_code == "US") %>% 
+  
+  #select only the code, name, and coordinates
+  select(iata, airport, latitude, longitude)
+
+#add the name and coordinates to the dataset
+data <- left_join(data, airport_info, by = join_by("dest" == "iata"))
+
+#load map parameters
+geo <-
+  list(
+    projection = list(
+      type = "mercator",
+      rotation = list(lon = -100, lat = 40, roll = 0),
+      scale = 8
+    ),
+    showland = TRUE,
+    landcolor = toRGB("gray95"),
+    style = "satellite",
+    center = list(lat = 39.50, lon =-98.35)
+  )
 
 
 # Define UI for application that draws a histogram
@@ -40,8 +71,13 @@ ui <- fluidPage(
       
     ),
     
-    mainPanel(plotOutput("freqdelayPlot"))
+    mainPanel(
+      tabsetPanel(
+        tabPanel("Frequency of Delay",plotOutput("freqdelayPlot")),
+        tabPanel("Estimated Probability of Delay"),
+        tabPanel("Flight Map"))
   )
+)
 )
 
 # Define server logic required to draw a histogramrun
@@ -58,11 +94,13 @@ server <- function(input, output) {
              aes(fill = delay)
              )+
         geom_bar(aes(x=delay, y = (..count..)/sum(..count..)))+
-        scale_y_continuous(labels = percent)+
+        scale_y_continuous(limits = c(0,1), labels = percent)+
         scale_x_discrete()+
         ylab("% of Flights Delayed")
       
     })
+    
+
 }
 
 # Run the application 
