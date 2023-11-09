@@ -119,10 +119,11 @@ map_data <- map_data %>% distinct(latitude, longitude, .keep_all = TRUE)
 
 #frequency of delay by airport
 delay_by_airport <- data %>% group_by(dest.code) %>% 
-  summarise(airport.delay.freq = sum(delay ==1)/n())
+  summarise(airport.delay.freq = sum(delay ==1)/n()) %>% 
+  mutate(airport.delay.freq = round(airport.delay.freq, digits = 3))
 
-#merge frequency of delay by airport with dataset
-data <- left_join(data, delay_by_airport, by = "dest.code")
+#merge frequency of delay by airport with map_data
+map_data <- left_join(map_data, delay_by_airport, by = c("airport" = "dest.code"))
 
 #top carrier by airport
 top_carrier_by_airport <- data %>% group_by(dest.code, carrier.code) %>% 
@@ -133,10 +134,8 @@ top_carrier_by_airport <- data %>% group_by(dest.code, carrier.code) %>%
   rename("top.carrier" = "carrier.code") %>% 
   select(dest.code, top.carrier)
 
-#merge top carrier by airport with dataset
-data <- left_join(data, top_carrier_by_airport, by = "dest.code")
-
-
+#merge top carrier by airport with map_data
+map_data <- left_join(map_data, top_carrier_by_airport, by = c("airport" = "dest.code"))
 
 
 
@@ -265,7 +264,10 @@ server <- function(input, output) {
                      showlegend = FALSE) %>% 
         add_markers(y = ~latitude,
                     x = ~longitude,
-                    text = ~paste0(airport, "<br>", "(", longitude, ", ", latitude, ")"),
+                    text = ~paste0(airport, "<br>", 
+                                   "(", longitude, ", ", latitude, ")","<br>",
+                                   "Frequency of Delay: ", airport.delay.freq, "<br>",
+                                   "Top Carrier: ", top.carrier),
                     hoverinfo = "text",
                     marker = list(
                       color = "#922820"),
