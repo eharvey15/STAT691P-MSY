@@ -4,6 +4,7 @@ library(tidyverse)
 library(ggthemes)
 library(scales)
 library(readxl)
+library(plotly)
 
 # Specify data types before import
 flight.data.types <- c('factor',    # Month
@@ -51,23 +52,83 @@ data$carrier.code = factorColByFreq(data, "carrier.code")
 
 
 # Likewise relabel and order levels of destination factor by number of flights
-dest.codes <- read_xlsx(
-    "https://raw.githubusercontent.com/eharvey15/STAT691P-MSY/master/destinationAirport.xlsx",
-    col_names = TRUE
-) %>%
-    separate_wider_delim(
-        Description,
-        delim = ": ",
-        names = c("Location", "Facility"),
-        too_few = "align_end"
-    )
+# The below file from Moodle is helpful for names, but does not supply lat/lon needed for map
+# dest.codes <- read_xlsx(
+#     "https://raw.githubusercontent.com/eharvey15/STAT691P-MSY/master/destinationAirport.xlsx",
+#     col_names = TRUE
+# ) %>%
+#     separate_wider_delim(
+#         Description,
+#         delim = ": ",
+#         names = c("Location", "Facility"),
+#         too_few = "align_end"
+#     )
 
-data <- left_join(data, dest.codes, by = c("dest" = "Code")) %>%
-    mutate(dest.code = dest, dest = Facility) %>%
-    select(-Location, -Facility)
+# data <- left_join(data, dest.codes, by = c("dest" = "Code")) %>%
+#     mutate(dest.code = dest, dest = Facility) %>%
+#     select(-Location, -Facility)
+airport_info <- read.csv("https://raw.githubusercontent.com/ip2location/ip2location-iata-icao/master/iata-icao.csv")
+
+data <- left_join(data, airport_info, by = c("dest" = "iata")) %>%
+    mutate(dest.code = dest, dest = airport) %>%
+    rename(dest.lon = longitude, dest.lat = latitude) %>%
+    select(-country_code, -region_name, -icao, -airport)
 
 data$dest = factorColByFreq(data, "dest")
 data$dest.code = factorColByFreq(data, "dest.code")
+
+#data$delay <- as.factor(data$delay) # done using flight.data.types
+
+#retrieve names for the codes
+#carrier_codes <- read.csv("https://raw.githubusercontent.com/eharvey15/STAT691P-MSY/master/airlinesCodes2022.csv")
+
+#data <- left_join(data, carrier_codes,by = join_by("carrier" == "Code"))
+#data <- data %>% rename("carrier_name" = "Description")
+
+
+#get airport info from external source
+#airport_info <- read.csv("https://raw.githubusercontent.com/ip2location/ip2location-iata-icao/master/iata-icao.csv")
+
+#select only the code, name, and coordinates
+#airport_info <- airport_info %>% 
+#  select(iata, airport, latitude, longitude)
+
+#add the name and coordinates to the dataset
+#data <- left_join(data, airport_info, by = join_by("dest" == "iata"))
+
+#retrieve unique airport names
+#airports <- unique(data$airport)
+
+#retrieve unique carrier names
+#carriers <- unique(data$carrier_name)
+
+
+#filter data down for flight map
+#map_data <- data %>% select(airport, longitude, latitude)
+#map_data$MSYlon <- filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$longitude
+#map_data$MSYlat <- filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$latitude
+#map_data <- map_data %>% distinct(latitude, longitude, .keep_all = TRUE)
+map_data <- data %>%
+    select(dest.code, dest.lon, dest.lat) %>%
+    rename(airport = dest.code, longitude = dest.lon, latitude = dest.lat)
+map_data$MSYlon <- airport_info$longitude[airport_info$airport == "Louis Armstrong New Orleans International Airport"]
+map_data$MSYlat <- airport_info$latitude[airport_info$airport == "Louis Armstrong New Orleans International Airport"]
+map_data <- map_data %>% distinct(latitude, longitude, .keep_all = TRUE)
+
+
+#load map parameters
+geo <-
+  list(
+    projection = list(
+      type = "mercator",
+      rotation = list(lon = -100, lat = 40, roll = 0),
+      scale = 8
+    ),
+    showland = TRUE,
+    landcolor = toRGB("gray95"),
+    style = "satellite",
+    center = list(lat = 39.50, lon =-98.35)
+  )
 
 
 # Define UI for application that draws a histogram
@@ -94,11 +155,16 @@ ui <- fluidPage(
       
     ),
     
-    mainPanel(plotOutput("freqdelayPlot"))
+    mainPanel(
+      tabsetPanel(
+        tabPanel("Frequency of Delay",plotOutput("freqdelayPlot")),
+        tabPanel("Estimated Probability of Delay"),
+        tabPanel("Flight Map", plotlyOutput("flight_map")))
   )
 )
+)
 
-# Define server logic required to draw a histogramrun
+# Define server logic required to draw a histogram
 server <- function(input, output) {
     
     observeEvent(input$fullNames, {
@@ -159,11 +225,32 @@ server <- function(input, output) {
              aes(fill = delay)
              )+
         geom_bar(aes(x=delay, y = (..count..)/sum(..count..)))+
-        scale_y_continuous(labels = percent)+
+        scale_y_continuous(limits = c(0,1), labels = percent)+
         scale_x_discrete()+
         ylab("% of Flights Delayed")
       
     })
+    
+    output$flight_map <- renderPlotly({
+      plot_geo(data = map_data, location_mode = "USA-states") %>% 
+        add_segments(x = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$longitude, 
+                     xend = ~longitude,
+                     y = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$latitude, 
+                     yend = ~latitude,
+                     showlegend = TRUE) %>% 
+        add_markers(y = ~latitude,
+                    x = ~longitude,
+                    text = ~paste0(airport, "<br>", "(", longitude, ", ", latitude, ")"),
+                    hoverinfo = "text",
+                    marker = list(
+                      color = "#922820"),
+                    alpha = 0.5,
+                    showscale = TRUE,
+                    showlegend = TRUE) %>% 
+        layout(geo = geo)
+    })
+    
+
 }
 
 # Run the application 
