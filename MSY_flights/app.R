@@ -10,8 +10,6 @@ data <- read.csv("https://raw.githubusercontent.com/eharvey15/STAT691P-MSY/maste
 
 data$delay <- as.factor(data$delay)
 
-
-
 #retrieve names for the codes
 carrier_codes <- read.csv("https://raw.githubusercontent.com/eharvey15/STAT691P-MSY/master/airlinesCodes2022.csv")
 
@@ -34,6 +32,14 @@ airports <- unique(data$airport)
 
 #retrieve unique carrier names
 carriers <- unique(data$carrier_name)
+
+
+#filter data down for flight map
+map_data <- data %>% select(airport, longitude, latitude)
+map_data$MSYlon <- filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$longitude
+map_data$MSYlat <- filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$latitude
+map_data <- map_data %>% distinct(latitude, longitude, .keep_all = TRUE)
+
 
 
 #load map parameters
@@ -83,7 +89,7 @@ ui <- fluidPage(
       tabsetPanel(
         tabPanel("Frequency of Delay",plotOutput("freqdelayPlot")),
         tabPanel("Estimated Probability of Delay"),
-        tabPanel("Flight Map"))
+        tabPanel("Flight Map", plotlyOutput("flight_map")))
   )
 )
 )
@@ -106,6 +112,25 @@ server <- function(input, output) {
         scale_x_discrete()+
         ylab("% of Flights Delayed")
       
+    })
+    
+    output$flight_map <- renderPlotly({
+      plot_geo(data = map_data, location_mode = "USA-states") %>% 
+        add_segments(x = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$longitude, 
+                     xend = ~longitude,
+                     y = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$latitude, 
+                     yend = ~latitude,
+                     showlegend = TRUE) %>% 
+        add_markers(y = ~latitude,
+                    x = ~longitude,
+                    text = ~paste0(airport, "<br>", "(", longitude, ", ", latitude, ")"),
+                    hoverinfo = "text",
+                    marker = list(
+                      color = "#922820"),
+                    alpha = 0.5,
+                    showscale = TRUE,
+                    showlegend = TRUE) %>% 
+        layout(geo = geo)
     })
     
 
