@@ -120,7 +120,8 @@ server <- function(input, output) {
                      xend = ~longitude,
                      y = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$latitude, 
                      yend = ~latitude,
-                     showlegend = TRUE) %>% 
+                     name = ~airport,
+                     showlegend = FALSE) %>% 
         add_markers(y = ~latitude,
                     x = ~longitude,
                     text = ~paste0(airport, "<br>", "(", longitude, ", ", latitude, ")"),
