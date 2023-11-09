@@ -10,23 +10,31 @@ data <- read.csv("https://raw.githubusercontent.com/eharvey15/STAT691P-MSY/maste
 
 data$delay <- as.factor(data$delay)
 
-#retrieve airport names
-airports <- unique(data$dest)
 
-#retrieve carrier names
-carriers <- unique(data$carrier)
+
+#retrieve names for the codes
+carrier_codes <- read.csv("https://raw.githubusercontent.com/eharvey15/STAT691P-MSY/master/airlinesCodes2022.csv")
+
+data <- left_join(data, carrier_codes,by = join_by("carrier" == "Code"))
+data <- data %>% rename("carrier_name" = "Description")
+
 
 #get airport info from external source
 airport_info <- read.csv("https://raw.githubusercontent.com/ip2location/ip2location-iata-icao/master/iata-icao.csv")
 
-#filter out non-US airports
-airport_info <- airport_info %>% filter(country_code == "US") %>% 
-  
-  #select only the code, name, and coordinates
+#select only the code, name, and coordinates
+airport_info <- airport_info %>% 
   select(iata, airport, latitude, longitude)
 
 #add the name and coordinates to the dataset
 data <- left_join(data, airport_info, by = join_by("dest" == "iata"))
+
+#retrieve unique airport names
+airports <- unique(data$airport)
+
+#retrieve unique carrier names
+carriers <- unique(data$carrier_name)
+
 
 #load map parameters
 geo <-
@@ -53,12 +61,12 @@ ui <- fluidPage(
       selectInput(inputId = "carrier", 
                          label = "Carrier",
                          choices = carriers,
-                         selected = list("DL", "AA", "B6"), 
+                         selected = list("American Airlines Inc."), 
                   multiple = TRUE),
       selectInput(inputId = "dest",
                          label = "Destination",
                          choices = airports,
-                  selected = list("LGA", "DFW", "CLT"),
+                  selected = list("Charlotte Douglas International Airport"),
                   multiple = TRUE),
       checkboxGroupInput(inputId = "day", 
                          label = "Day of the Week",
@@ -80,13 +88,13 @@ ui <- fluidPage(
 )
 )
 
-# Define server logic required to draw a histogramrun
+# Define server logic required to draw a histogram
 server <- function(input, output) {
 
     output$freqdelayPlot <- renderPlot({
 
-      ggplot(data %>% filter(carrier %in% input$carrier,
-                                    dest %in% input$dest,
+      ggplot(data %>% filter(carrier_name %in% input$carrier,
+                                    airport %in% input$dest,
                                     day %in% input$day,
                                     month %in% input$month,
                                     between(duration, input$duration[1], input$duration[2]),
