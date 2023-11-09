@@ -115,6 +115,30 @@ map_data$MSYlon <- airport_info$longitude[airport_info$airport == "Louis Armstro
 map_data$MSYlat <- airport_info$latitude[airport_info$airport == "Louis Armstrong New Orleans International Airport"]
 map_data <- map_data %>% distinct(latitude, longitude, .keep_all = TRUE)
 
+#here I would like to do some work to establish some basic basics about each flight path, such as the top 3 carriers and the frequency of a delay.
+
+#frequency of delay by airport
+delay_by_airport <- data %>% group_by(dest.code) %>% 
+  summarise(airport.delay.freq = sum(delay ==1)/n())
+
+#merge frequency of delay by airport with dataset
+data <- left_join(data, delay_by_airport, by = "dest.code")
+
+#top carrier by airport
+top_carrier_by_airport <- data %>% group_by(dest.code, carrier.code) %>% 
+  summarise(flight.count = n()) %>% 
+  arrange(desc(flight.count)) %>% 
+  group_by(dest.code) %>% 
+  slice(1) %>% 
+  rename("top.carrier" = "carrier.code") %>% 
+  select(dest.code, top.carrier)
+
+#merge top carrier by airport with dataset
+data <- left_join(data, top_carrier_by_airport, by = "dest.code")
+
+
+
+
 
 #load map parameters
 geo <-
