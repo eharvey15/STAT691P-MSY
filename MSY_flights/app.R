@@ -5,6 +5,8 @@ library(ggthemes)
 library(scales)
 library(readxl)
 library(plotly)
+library(caret)
+library(glmnet)
 
 # Specify data types before import
 flight.data.types <- c('factor',    # Month
@@ -52,21 +54,6 @@ data$carrier.code = factorColByFreq(data, "carrier.code")
 
 
 # Likewise relabel and order levels of destination factor by number of flights
-# The below file from Moodle is helpful for names, but does not supply lat/lon needed for map
-# dest.codes <- read_xlsx(
-#     "https://raw.githubusercontent.com/eharvey15/STAT691P-MSY/master/destinationAirport.xlsx",
-#     col_names = TRUE
-# ) %>%
-#     separate_wider_delim(
-#         Description,
-#         delim = ": ",
-#         names = c("Location", "Facility"),
-#         too_few = "align_end"
-#     )
-
-# data <- left_join(data, dest.codes, by = c("dest" = "Code")) %>%
-#     mutate(dest.code = dest, dest = Facility) %>%
-#     select(-Location, -Facility)
 airport_info <- read.csv("https://raw.githubusercontent.com/ip2location/ip2location-iata-icao/master/iata-icao.csv")
 
 data <- left_join(data, airport_info, by = c("dest" = "iata")) %>%
@@ -77,37 +64,28 @@ data <- left_join(data, airport_info, by = c("dest" = "iata")) %>%
 data$dest = factorColByFreq(data, "dest")
 data$dest.code = factorColByFreq(data, "dest.code")
 
-#data$delay <- as.factor(data$delay) # done using flight.data.types
 
-#retrieve names for the codes
-#carrier_codes <- read.csv("https://raw.githubusercontent.com/eharvey15/STAT691P-MSY/master/airlinesCodes2022.csv")
+# Create single fitted model (for now) to be used within app for prediction only
+# Use "model3" from "LassoConfusionFlights.f23.R" since it maximized AUC
+# Even though predictions will be done on user input, train on smaller
+#  subset, since shiny has memory allocations for larger size vectors
+#  (e.g. setting train.percent to 1.0 resultss in "Error: cannot allocate
+#  vector of size 226.7 Mb)
+train.percent <- 0.05
+set.seed(112358)
 
-#data <- left_join(data, carrier_codes,by = join_by("carrier" == "Code"))
-#data <- data %>% rename("carrier_name" = "Description")
+training.rows <- createDataPartition(data$delay, p = train.percent, list = FALSE)
+train.batch <- data[training.rows, ]
+#test.batch <- data[-training.rows, ]
 
+model.static.matrix <- model.matrix(delay ~ (day + depart + duration + month)^3 + (carrier + dest)^2, data=train.batch)[,-1]
+model.static <- glmnet(model.static.matrix, y=as.factor(train.batch$delay), alpha=1, family='binomial')
 
-#get airport info from external source
-#airport_info <- read.csv("https://raw.githubusercontent.com/ip2location/ip2location-iata-icao/master/iata-icao.csv")
-
-#select only the code, name, and coordinates
-#airport_info <- airport_info %>% 
-#  select(iata, airport, latitude, longitude)
-
-#add the name and coordinates to the dataset
-#data <- left_join(data, airport_info, by = join_by("dest" == "iata"))
-
-#retrieve unique airport names
-#airports <- unique(data$airport)
-
-#retrieve unique carrier names
-#carriers <- unique(data$carrier_name)
+model.static.cv <- cv.glmnet(model.static.matrix, y=as.numeric(train.batch$delay), alpha=1)
+model.static.best_lambda <- model.static.cv$lambda.min
 
 
-#filter data down for flight map
-#map_data <- data %>% select(airport, longitude, latitude)
-#map_data$MSYlon <- filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$longitude
-#map_data$MSYlat <- filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$latitude
-#map_data <- map_data %>% distinct(latitude, longitude, .keep_all = TRUE)
+# Filter data down for flight map
 map_data <- data %>%
     select(dest.code, dest.lon, dest.lat) %>%
     rename(airport = dest.code, longitude = dest.lon, latitude = dest.lat)
@@ -155,36 +133,59 @@ geo <-
 
 
 # Define UI for application that draws a histogram
-ui <- fluidPage(
+ui <- navbarPage(
   titlePanel("New Orleans Airport (MSY) Flight Delays"),
   sidebarLayout(
     sidebarPanel(
-      sliderInput("duration", "Duration (mins)", min = 0, max = 400, value = c(0,400), sep = ""),
-      sliderInput("depart", "Departure Time (mins after 12:01 AM)", min =0, max=1440, value = c(0,1440), sep = ""),
-      uiOutput("carrierInput"),
+      conditionalPanel("input.tabid != 'mapTab'",
+        sliderInput(
+          "duration",
+          "Duration (mins)",
+          min = 0, max = 400, value = c(0,400), sep = ""
+        )
+      ),
+      conditionalPanel("input.tabid != 'mapTab'",
+        sliderInput(
+          "depart",
+          "Departure Time (mins after 12:01 AM)",
+          min =0, max=1440, value = c(0,1440), sep = ""
+        )
+      ),
+      conditionalPanel("input.tabid != 'mapTab'",
+        uiOutput("carrierInput")
+      ),
       uiOutput("destInput"),
-      checkboxGroupInput(inputId = "day", 
-                         label = "Day of the Week",
-                         choices = list("Monday" = 1, "Tuesday" = 2, "Wednesday" = 3, "Thursday" = 4, "Friday" = 5, "Saturday" = 6, "Sunday" = 7),
-                         selected = seq(1:7)),
-      checkboxGroupInput(inputId = "month",
-                         label = "Month",
-                         choices = list("April" = 4, "May" = 5, "June" = 6, "July" = 7, "August" = 8, "September" = 9, "October" = 10, "November" = 11, "December" = 12),
-                         selected = seq(from = 4, to =12, by =1)),
+      conditionalPanel("input.tabid != 'mapTab'",
+        checkboxGroupInput(
+          inputId = "day", 
+          label = "Day of the Week",
+          choices = list("Monday" = 1, "Tuesday" = 2, "Wednesday" = 3, "Thursday" = 4, "Friday" = 5, "Saturday" = 6, "Sunday" = 7),
+          selected = seq(1:7)
+        )
+      ),
+      conditionalPanel("input.tabid != 'mapTab'",
+        checkboxGroupInput(
+          inputId = "month",
+          label = "Month",
+          choices = list("April" = 4, "May" = 5, "June" = 6, "July" = 7, "August" = 8, "September" = 9, "October" = 10, "November" = 11, "December" = 12),
+          selected = seq(from = 4, to =12, by =1)
+        )
+      ),
       br(),
-      checkboxInput(inputId = "fullNames",
-                    label = "Use full Carrier/Airport names",
-                    value = FALSE)
-      
+      checkboxInput(
+        inputId = "fullNames",
+        label = "Use full Carrier/Airport names",
+        value = FALSE
+      )
     ),
-    
     mainPanel(
       tabsetPanel(
-        tabPanel("Frequency of Delay",plotOutput("freqdelayPlot")),
-        tabPanel("Estimated Probability of Delay"),
-        tabPanel("Flight Map", plotlyOutput("flight_map")))
+        id = "tabid",
+        tabPanel("Frequency of Delay", value = "freqTab", plotOutput("freqdelayPlot")),
+        tabPanel("Estimated Probability of Delay", value = "predTab", dataTableOutput("predictionTable")),
+        tabPanel("Flight Map", value = "mapTab", plotlyOutput("flight_map")))
+    )
   )
-)
 )
 
 # Define server logic required to draw a histogram
@@ -238,6 +239,8 @@ server <- function(input, output) {
     }, ignoreNULL = TRUE, ignoreInit = FALSE)
 
     output$freqdelayPlot <- renderPlot({
+      
+      req(input$tabid == "freqTab", cancelOutput = TRUE)
 
       ggplot(data %>% filter(carrier %in% input$carrier | carrier.code %in% input$carrier,
                                     dest %in% input$dest | dest.code %in% input$dest,
@@ -254,7 +257,36 @@ server <- function(input, output) {
       
     })
     
+    # Just a data table for now, but could potentially be a plot of each
+    #  input variable vs predicted response
+    output$predictionTable <- renderDataTable({
+      
+      req(input$tabid == "predTab", cancelOutput = TRUE)
+      
+      pred_data <- data %>%
+        filter(
+          carrier %in% input$carrier | carrier.code %in% input$carrier,
+          dest %in% input$dest | dest.code %in% input$dest,
+          day %in% input$day,
+          month %in% input$month,
+          between(duration, input$duration[1], input$duration[2]),
+          between(depart, input$depart[1], input$depart[2])
+        )
+      
+      model.static.testdata <- model.matrix(delay ~ (day + depart + duration + month)^3 + (carrier + dest)^2, data = pred_data)[,-1]
+      model.static.pred <- as.vector(predict(model.static, s = model.static.best_lambda, model.static.testdata, type="response"))
+      
+      pred_data %>%
+        mutate(delayProb = model.static.pred) %>%
+        group_by(carrier, dest, day, month, duration, depart) %>%
+        reframe(delayProb) %>%
+        arrange(desc(delayProb))
+    })
+    
     output$flight_map <- renderPlotly({
+      
+      req(input$tabid == "mapTab", cancelOutput = TRUE)
+      
       plot_geo(data = map_data, location_mode = "USA-states") %>% 
         add_segments(x = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$longitude, 
                      xend = ~longitude,
