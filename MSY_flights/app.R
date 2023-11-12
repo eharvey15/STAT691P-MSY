@@ -123,11 +123,14 @@ geo <-
     projection = list(
       type = "mercator",
       rotation = list(lon = -100, lat = 40, roll = 0),
-      scale = 8
+      scale = 8,
+      scope = "usa"
     ),
     showland = TRUE,
     landcolor = toRGB("gray95"),
     style = "satellite",
+    showcountries = TRUE,
+    showsubunits = T,subunitcolor="Blue",
     center = list(lat = 39.50, lon =-98.35)
   )
 
@@ -287,12 +290,13 @@ server <- function(input, output) {
       
       req(input$tabid == "mapTab", cancelOutput = TRUE)
       
-      plot_geo(data = map_data, location_mode = "USA-states", height = 800) %>% 
+      plot_geo(data = map_data,  height = 800) %>% 
         add_segments(x = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$longitude, 
                      xend = ~longitude,
                      y = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$latitude, 
                      yend = ~latitude,
                      name = ~airport,
+                     hoverinfo = "name",
                      showlegend = FALSE) %>% 
         add_markers(y = ~latitude,
                     x = ~longitude,
