@@ -290,7 +290,7 @@ server <- function(input, output) {
       
       req(input$tabid == "mapTab", cancelOutput = TRUE)
       
-      plot_geo(data = map_data,  height = 800) %>% 
+      plot_geo(data = map_data %>%,  height = 800) %>% 
         add_segments(x = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$longitude, 
                      xend = ~longitude,
                      y = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$latitude, 
