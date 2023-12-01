@@ -316,6 +316,7 @@ server <- function(input, output) {
                     alpha = 0.5,
                     showscale = TRUE,
                     showlegend = TRUE) %>% 
+        colorbar(title = "Frequency of Delay") %>% 
         layout(geo = geo)
     })
     
