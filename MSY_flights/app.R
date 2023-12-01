@@ -255,7 +255,7 @@ server <- function(input, output) {
              )+
         geom_bar(aes(x=delay, y = (..count..)/sum(..count..)))+
         scale_y_continuous(limits = c(0,1), labels = percent)+
-        scale_x_discrete()+
+        scale_x_discrete(labels = c("not delayed", "delayed"))+
         ylab("% of Flights Delayed")
       
     })
