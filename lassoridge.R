@@ -1,0 +1,96 @@
+
+
+fit_lasso <- function(x, y, alpha) {
+  lasso_model<- glmnet(x, y, alpha = alpha, family = "gaussian")
+  return(lasso_model)
+}
+fit_ridge <- function(x, y, lambda) {
+  ridge_model <- glmnet(x, y, alpha = 0, lambda = lambda, family = "gaussian")
+  return(ridge_model)
+}
+
+
+library("ggplot2")
+
+library("reshape2")
+
+visualize_coefficient_paths_lasso <- function(lasso_model, title = "Coefficient Paths") {
+
+  # Extract coefficient paths from the model
+  coef_paths <- coef(ridge_model)
+
+  # Create a data frame for coefficients and alpha
+  df <- data.frame(alpha = coef_paths$alpha, coef_paths)
+
+  # Melt the data for plotting
+  df <- reshape2::melt(df, id.vars = "alpha")
+
+  # Create the coefficient path plot
+  p <- ggplot(df, aes(x = log(alpha), y = value, color = variable)) +
+    geom_line() +scale_x_continuous(trans = "log", breaks = scales::trans_breaks("log10", function(x) 10^x)) +
+    labs(title = title, x = "Log(alpha/alpha)", y = "Coefficient Value", color = "Variable") +
+    theme_minimal()
+  print(p)
+}
+
+visualize_coefficient_paths_ridge <- function(ridge_model, title = "Coefficient Paths") {
+
+  # Extract coefficient paths from the model
+  coef_paths <- coef(ridge_model)
+
+  # Create a data frame for coefficients and lambdas
+  df <- data.frame(lambda = coef_paths$lambda, coef_paths)
+
+  # Melt the data for plotting
+  df <- reshape2::melt(df, id.vars = "lambda")
+
+  # Create the coefficient path plot
+  p <- ggplot(df, aes(x = log(lambda), y = value, color = variable)) +
+    geom_line() +scale_x_continuous(trans = "log", breaks = scales::trans_breaks("log10", function(x) 10^x)) +
+    labs(title = title, x = "Log(lambda/alpha)", y = "Coefficient Value", color = "Variable") +
+    theme_minimal()
+  print(p)
+}
+
+
+cross_validation_plot_lasso <- function(x, y, alpha) {
+
+  # Create a matrix of predictor variables
+  x_matrix <- as.matrix(x)
+
+  # Perform cross-validation
+  cv_model <- cv.glmnet(x_matrix, y, alpha = alpha, family = family)
+
+  # Plot cross-validation results
+  plot(cv_model)
+
+  # Return the cross-validation model for further analysis
+  return(cv_model)
+}
+
+
+
+cross_validation_plot_ridge <- function(x, y, alpha) {
+
+  # Create a matrix of predictor variables
+  x_matrix <- as.matrix(x)
+
+  # Perform cross-validation
+  cv_model <- cv.glmnet(x_matrix, y, lambda = lambda, family = family)
+
+  # Plot cross-validation results
+  plot(cv_model)
+
+  # Return the cross-validation model for further analysis
+  return(cv_model)
+}
+
+
+# Install and load the testthat package if you haven't already
+install.packages("testthat")
+library(testthat)
+
+# Assume your package is already loaded
+library("lasso")
+
+
