@@ -7,6 +7,7 @@ library(readxl)
 library(plotly)
 library(caret)
 library(glmnet)
+library(shinythemes)
 
 # Specify data types before import
 flight.data.types <- c('factor',    # Month
@@ -136,7 +137,7 @@ geo <-
 
 
 # Define UI for application that draws a histogram
-ui <- navbarPage(
+ui <- navbarPage(theme = shinytheme("journal"),
   titlePanel("New Orleans Airport (MSY) Flight Delays"),
   sidebarLayout(
     sidebarPanel(
@@ -251,14 +252,16 @@ server <- function(input, output) {
                                     month %in% input$month,
                                     between(duration, input$duration[1], input$duration[2]),
                              between(depart, input$depart[1], input$depart[2])),
-             aes(fill = delay)
+             aes(x=factor(delay), fill = factor(delay))
              )+
-        geom_bar(aes(x=delay, y = (..count..)/sum(..count..)), show.legend = FALSE)+
+        geom_bar(aes(y = (..count..)/sum(..count..)), show.legend = FALSE)+
         scale_y_continuous(limits = c(0,1), labels = percent)+
         scale_x_discrete(labels = c("Not Delayed", "Delayed"))+
         ylab("% of Flights Delayed")+
         xlab("Status")+
-        theme_economist_white()
+        theme_economist_white()+
+        geom_text(stat = 'count', aes(label = paste0((..count..)/sum(..count..) * 100, "%")),
+                  vjust = -0.5)
       
     })
     
