@@ -49,8 +49,8 @@ data <- left_join(data, carrier.codes, by = c("carrier" = "Code")) %>%
     mutate(carrier.code = carrier, carrier = Description) %>%
     select(-Description)
 
-data$carrier = factorColByFreq(data, "carrier")
-data$carrier.code = factorColByFreq(data, "carrier.code")
+data$carrier <- factorColByFreq(data, "carrier")
+data$carrier.code <- factorColByFreq(data, "carrier.code")
 
 
 # Likewise relabel and order levels of destination factor by number of flights
@@ -61,8 +61,8 @@ data <- left_join(data, airport_info, by = c("dest" = "iata")) %>%
     rename(dest.lon = longitude, dest.lat = latitude) %>%
     select(-country_code, -region_name, -icao, -airport)
 
-data$dest = factorColByFreq(data, "dest")
-data$dest.code = factorColByFreq(data, "dest.code")
+data$dest <- factorColByFreq(data, "dest")
+data$dest.code <- factorColByFreq(data, "dest.code")
 
 
 # Create single fitted model (for now) to be used within app for prediction only
@@ -185,7 +185,13 @@ ui <- navbarPage(
       tabsetPanel(
         id = "tabid",
         tabPanel("Frequency of Delay", value = "freqTab", plotOutput("freqdelayPlot")),
-        tabPanel("Estimated Probability of Delay", value = "predTab", dataTableOutput("predictionTable")),
+        tabPanel("Estimated Probability of Delay", value = "predTab",
+                 plotlyOutput("predMonthDayPlot"),
+                 br(),
+                 plotlyOutput("predDepartDurationPlot"),
+                 br(),
+                 plotlyOutput("predDestCarrierPlot")
+        ),
         tabPanel("Flight Map", value = "mapTab", plotlyOutput("flight_map")))
     )
   )
@@ -243,7 +249,7 @@ server <- function(input, output) {
 
     output$freqdelayPlot <- renderPlot({
       
-      req(input$tabid == "freqTab", cancelOutput = TRUE)
+      req(input$tabid == "freqTab", !is.null(data), cancelOutput = TRUE)
 
       ggplot(data %>% filter(carrier %in% input$carrier | carrier.code %in% input$carrier,
                                     dest %in% input$dest | dest.code %in% input$dest,
@@ -260,13 +266,18 @@ server <- function(input, output) {
       
     })
     
-    # Just a data table for now, but could potentially be a plot of each
-    #  input variable vs predicted response
-    output$predictionTable <- renderDataTable({
+    # Create base prediction data once when tab is visible for use in several plots
+    prediction <- reactiveValues(pred_data = NULL, plot_palette = NULL)
+    observe({
+      prediction$pred_data <- data %>% mutate(delayProb = NA)
+      prediction$plot_palette <- "Cividis"
+    })
+    
+    # Update predictions
+    observeEvent(c(input$tabid == "predTab", input$carrier, input$dest, 
+                   input$day, input$month, input$duration, input$depart), {
       
-      req(input$tabid == "predTab", cancelOutput = TRUE)
-      
-      pred_data <- data %>%
+      res <- data %>%
         filter(
           carrier %in% input$carrier | carrier.code %in% input$carrier,
           dest %in% input$dest | dest.code %in% input$dest,
@@ -276,21 +287,134 @@ server <- function(input, output) {
           between(depart, input$depart[1], input$depart[2])
         )
       
-      model.static.testdata <- model.matrix(delay ~ (day + depart + duration + month)^3 + (carrier + dest)^2, data = pred_data)[,-1]
+      # Order days and months numerically (rather than default of alphabetically)
+      days.names <- c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+      res$day <- factor(
+        days.names[res$day],
+        levels = days.names
+      )
+      
+      months.names <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+      res$month <- factor(
+        months.names[
+          as.numeric(as.character(res$month)) # needed to avoid numbering by factor order
+        ],
+        levels = months.names[sort(as.numeric(levels(res$month)))]
+      )
+      
+      model.static.testdata <- model.matrix(delay ~ (day + depart + duration + month)^3 + (carrier + dest)^2, data = res)[,-1]
       model.static.pred <- as.vector(predict(model.static, s = model.static.best_lambda, model.static.testdata, type="response"))
       
-      pred_data %>%
+      prediction$pred_data <- res %>%
         mutate(delayProb = model.static.pred) %>%
         group_by(carrier, dest, day, month, duration, depart) %>%
-        reframe(delayProb) %>%
-        arrange(desc(delayProb))
+        reframe(delayProb)
+      
+    }, ignoreNULL = TRUE, ignoreInit = TRUE)
+    
+    output$predMonthDayPlot <- renderPlotly({
+      
+      req(input$tabid == "predTab", cancelOutput = TRUE)
+      
+      plot_ly(prediction$pred_data, colorscale = prediction$plot_palette) %>%
+        add_heatmap(
+          ~month,
+          ~day,
+          ~delayProb,
+          hovertemplate = paste(
+            "Month: %{x}",
+            "Day: %{y}",
+            "<b>Est. Delay Prob.</b>: %{z:.1%}<extra></extra>",
+            sep = "<br>"
+          )
+        ) %>%
+        layout(
+          title = "Est. Delay Prob. by Month and Day of Flight Departure"
+        )
+    })
+    
+    output$predDepartDurationPlot <- renderPlotly({
+      
+      req(input$tabid == "predTab", cancelOutput = TRUE)
+      
+      plot_ly(prediction$pred_data, type = "scatterpolar", mode = "markers", marker = list(colorscale = prediction$plot_palette)) %>%
+        add_trace(
+          r = ~duration,
+          theta = ~(depart * (360 / 1440)),
+          marker = list(
+            color = ~delayProb,
+            opacity = 0.4
+          ),
+          showlegend = FALSE,
+          text = ~paste(
+            paste("Depart:", as.character(as.POSIXct(depart * 60, origin = as.POSIXct("2022-01-01")), format = "%I:%M %p")),
+            paste("Duration:", as.character(as.POSIXct(duration * 60, origin = as.POSIXct("2022-01-01")), format = "%I:%M")),
+            sep = "<br>"
+          ),
+          hovertemplate = "%{text}<br><b>Est. Delay Prob.</b>: %{marker.color:.1%}<extra></extra>"
+        ) %>%
+        layout(
+          title = "Est. Delay Prob. by Flight Departure and Duration",
+          polar = list(
+            bgcolor = "#bbb",
+            radialaxis = list(
+              visible = TRUE,
+              ticksuffix = "m"
+            ),
+            angularaxis = list(
+              direction = "clockwise",
+              thetaunit = "degrees",
+              tickmode = "array",
+              tickvals = seq(0, 360, by = 360 / 8), # ticks every 3 hours
+              ticktext = as.character(seq(
+                as.POSIXct("2022-01-01"),
+                as.POSIXct("2022-01-02"),
+                length.out = 9)[-9],
+                format = "%I:%M %p")
+            )
+          )
+        )
+    })
+    
+    output$predDestCarrierPlot <- renderPlotly({
+      
+      req(input$tabid == "predTab", cancelOutput = TRUE)
+      
+      plot_ly(
+        prediction$pred_data,
+        type = "treemap",
+        labels = ~dest,
+        parents = ~carrier,
+        values = ~delayProb,
+        marker = list(colorscale = prediction$plot_palette)
+      ) %>%
+        layout(
+          title = "Est. Delay Prob. by Destination Airport and Carrier"
+        )
+      
+      # plot_ly(prediction$pred_data, colorscale = prediction$plot_palette) %>%
+      #   add_heatmap(
+      #     ~dest,
+      #     ~carrier,
+      #     ~delayProb,
+      #     hovertemplate = paste(
+      #       "Destination: %{x}",
+      #       "Carrier: %{y}",
+      #       "<b>Est. Delay Prob.</b>: %{z:.1%}<extra></extra>",
+      #       sep = "<br>"
+      #     )
+      #   ) %>%
+      #   layout(
+      #     title = "Est. Delay Prob. by Destination Airport and Carrier"
+      #   )
     })
     
     output$flight_map <- renderPlotly({
       
       req(input$tabid == "mapTab", cancelOutput = TRUE)
       
-      plot_geo(data = map_data %>%,  height = 800) %>% 
+      plot_geo(data = map_data,  height = 800) %>% 
         add_segments(x = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$longitude, 
                      xend = ~longitude,
                      y = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$latitude, 
