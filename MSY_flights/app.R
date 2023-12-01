@@ -87,7 +87,7 @@ model.static.best_lambda <- model.static.cv$lambda.min
 
 # Filter data down for flight map
 map_data <- data %>%
-    select(dest.code, dest.lon, dest.lat) %>%
+    select(dest.code, dest.lon, dest.lat, dest) %>%
     rename(airport = dest.code, longitude = dest.lon, latitude = dest.lat)
 map_data$MSYlon <- airport_info$longitude[airport_info$airport == "Louis Armstrong New Orleans International Airport"]
 map_data$MSYlat <- airport_info$latitude[airport_info$airport == "Louis Armstrong New Orleans International Airport"]
@@ -253,10 +253,12 @@ server <- function(input, output) {
                              between(depart, input$depart[1], input$depart[2])),
              aes(fill = delay)
              )+
-        geom_bar(aes(x=delay, y = (..count..)/sum(..count..)))+
+        geom_bar(aes(x=delay, y = (..count..)/sum(..count..)), show.legend = FALSE)+
         scale_y_continuous(limits = c(0,1), labels = percent)+
-        scale_x_discrete(labels = c("not delayed", "delayed"))+
-        ylab("% of Flights Delayed")
+        scale_x_discrete(labels = c("Not Delayed", "Delayed"))+
+        ylab("% of Flights Delayed")+
+        xlab("Status")+
+        theme_economist_white()
       
     })
     
@@ -290,14 +292,15 @@ server <- function(input, output) {
       
       req(input$tabid == "mapTab", cancelOutput = TRUE)
       
-      plot_geo(data = map_data,  height = 800) %>% 
+      plot_geo(data = map_data %>% filter(airport %in% input$dest | dest %in% input$dest,),  height = 800) %>% 
         add_segments(x = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$longitude, 
                      xend = ~longitude,
                      y = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$latitude, 
                      yend = ~latitude,
                      name = ~airport,
                      hoverinfo = "name",
-                     showlegend = FALSE) %>% 
+                     showlegend = FALSE, 
+                     color = ~airport.delay.freq) %>% 
         add_markers(y = ~latitude,
                     x = ~longitude,
                     text = ~paste0(airport, "<br>", 
