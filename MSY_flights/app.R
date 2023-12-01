@@ -7,6 +7,7 @@ library(readxl)
 library(plotly)
 library(caret)
 library(glmnet)
+library(shinythemes)
 
 # Specify data types before import
 flight.data.types <- c('factor',    # Month
@@ -87,7 +88,7 @@ model.static.best_lambda <- model.static.cv$lambda.min
 
 # Filter data down for flight map
 map_data <- data %>%
-    select(dest.code, dest.lon, dest.lat) %>%
+    select(dest.code, dest.lon, dest.lat, dest) %>%
     rename(airport = dest.code, longitude = dest.lon, latitude = dest.lat)
 map_data$MSYlon <- airport_info$longitude[airport_info$airport == "Louis Armstrong New Orleans International Airport"]
 map_data$MSYlat <- airport_info$latitude[airport_info$airport == "Louis Armstrong New Orleans International Airport"]
@@ -128,7 +129,7 @@ geo <-
     ),
     showland = TRUE,
     landcolor = toRGB("gray95"),
-    style = "satellite",
+    style = "stamen-terrain",
     showcountries = TRUE,
     showsubunits = T,subunitcolor="Blue",
     center = list(lat = 39.50, lon =-98.35)
@@ -136,7 +137,7 @@ geo <-
 
 
 # Define UI for application that draws a histogram
-ui <- navbarPage(
+ui <- navbarPage(theme = shinytheme("journal"),
   titlePanel("New Orleans Airport (MSY) Flight Delays"),
   sidebarLayout(
     sidebarPanel(
@@ -257,12 +258,16 @@ server <- function(input, output) {
                                     month %in% input$month,
                                     between(duration, input$duration[1], input$duration[2]),
                              between(depart, input$depart[1], input$depart[2])),
-             aes(fill = delay)
+             aes(x=factor(delay), fill = factor(delay))
              )+
-        geom_bar(aes(x=delay, y = (..count..)/sum(..count..)))+
+        geom_bar(aes(y = (..count..)/sum(..count..)), show.legend = FALSE)+
         scale_y_continuous(limits = c(0,1), labels = percent)+
-        scale_x_discrete()+
-        ylab("% of Flights Delayed")
+        scale_x_discrete(labels = c("Not Delayed", "Delayed"))+
+        ylab("% of Flights Delayed")+
+        xlab("Status")+
+        theme_economist_white()+
+        geom_text(stat = 'count', aes(label = paste0((..count..)/sum(..count..) * 100, "%")),
+                  vjust = -0.5)
       
     })
     
@@ -414,14 +419,15 @@ server <- function(input, output) {
       
       req(input$tabid == "mapTab", cancelOutput = TRUE)
       
-      plot_geo(data = map_data,  height = 800) %>% 
+      plot_geo(data = map_data %>% filter(airport %in% input$dest | dest %in% input$dest,),  height = 800) %>% 
         add_segments(x = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$longitude, 
                      xend = ~longitude,
                      y = filter(airport_info, airport == "Louis Armstrong New Orleans International Airport")$latitude, 
                      yend = ~latitude,
                      name = ~airport,
                      hoverinfo = "name",
-                     showlegend = FALSE) %>% 
+                     showlegend = FALSE, 
+                     color = ~airport.delay.freq) %>% 
         add_markers(y = ~latitude,
                     x = ~longitude,
                     text = ~paste0(airport, "<br>", 
@@ -434,6 +440,7 @@ server <- function(input, output) {
                     alpha = 0.5,
                     showscale = TRUE,
                     showlegend = TRUE) %>% 
+        colorbar(title = "Frequency of Delay") %>% 
         layout(geo = geo)
     })
     
