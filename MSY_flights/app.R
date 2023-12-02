@@ -335,7 +335,14 @@ server <- function(input, output) {
           )
         ) %>%
         layout(
-          title = "Est. Delay Prob. by Month and Day of Flight Departure"
+          title = "Est. Delay Prob. by Month and Day of Flight Departure",
+          margin = list(t = 100, b = 100, pad = 20),
+          xaxis = list(
+            title = "Month"
+          ),
+          yaxis = list(
+            title = "Day"
+          )
         )
     })
     
@@ -361,17 +368,19 @@ server <- function(input, output) {
         ) %>%
         layout(
           title = "Est. Delay Prob. by Flight Departure and Duration",
+          margin = list(t = 100, b = 100, pad = 20),
           polar = list(
             bgcolor = "#bbb",
             radialaxis = list(
               visible = TRUE,
-              ticksuffix = "m"
+              ticksuffix = "m",
+              tickcolor = "#eee"
             ),
             angularaxis = list(
               direction = "clockwise",
               thetaunit = "degrees",
               tickmode = "array",
-              tickvals = seq(0, 360, by = 360 / 8), # ticks every 3 hours
+              tickvals = seq(0, 359, by = 360 / 8), # ticks every 3 hours
               ticktext = as.character(seq(
                 as.POSIXct("2022-01-01"),
                 as.POSIXct("2022-01-02"),
@@ -386,33 +395,52 @@ server <- function(input, output) {
       
       req(input$tabid == "predTab", cancelOutput = TRUE)
       
+      tree_data <- prediction$pred_data %>%
+        group_by(carrier = as.character(carrier), dest = as.character(dest)) %>%
+        reframe(delayProb = quantile(delayProb, probs = c(0.95))) %>% # Obtain 95th %tile delay for carrier-dest pair
+        group_by(carrier) %>%
+        mutate(
+          carrierDest = paste(carrier, dest, sep = " - "),
+          delayProbProp = delayProb / sum(delayProb))
+      
+      n.carriers <- length(unique(tree_data$carrier))
+      tree_vals <- c(rep(NA, n.carriers), tree_data$delayProbProp)
+      tree_vals[1:n.carriers] = (tree_data %>%
+                                   reframe(delayProbPropRoot = sum(delayProb) / sum(tree_data$delayProb))
+                                 )$delayProbPropRoot
+      
       plot_ly(
-        prediction$pred_data,
+        tree_data,
         type = "treemap",
-        labels = ~dest,
-        parents = ~carrier,
-        values = ~delayProb,
-        marker = list(colorscale = prediction$plot_palette)
+        labels = ~as.character(c(unique(carrier), carrierDest)),
+        parents = ~c(rep("", n.carriers), carrier),
+        values = tree_vals,
+        marker = list(
+          color = ~c(rep(0, n.carriers), delayProb),
+          colorscale = prediction$plot_palette
+        ),
+        hovertemplate = paste(
+          "<b>%{label}</b>",
+          "Est. Delay Prob. (95th Percentile): %{value:.1%}",
+          "% Parent: %{percentParent:.1%}",
+          "% All: %{percentRoot:.1%}<extra></extra>",
+          sep = "<br>"
+        )
       ) %>%
         layout(
-          title = "Est. Delay Prob. by Destination Airport and Carrier"
+          title = "Est. Delay Prob. by Destination Airport and Carrier",
+          margin = list(t = 100, b = 100, pad = 20),
+          uniformtext = list(
+            minsize = 10,
+            mode = "hide"
+          ),
+          xaxis = list(
+            showticklabels = FALSE
+          ),
+          yaxis = list(
+            showticklabels = FALSE
+          )
         )
-      
-      # plot_ly(prediction$pred_data, colorscale = prediction$plot_palette) %>%
-      #   add_heatmap(
-      #     ~dest,
-      #     ~carrier,
-      #     ~delayProb,
-      #     hovertemplate = paste(
-      #       "Destination: %{x}",
-      #       "Carrier: %{y}",
-      #       "<b>Est. Delay Prob.</b>: %{z:.1%}<extra></extra>",
-      #       sep = "<br>"
-      #     )
-      #   ) %>%
-      #   layout(
-      #     title = "Est. Delay Prob. by Destination Airport and Carrier"
-      #   )
     })
     
     output$flight_map <- renderPlotly({
