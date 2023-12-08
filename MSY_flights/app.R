@@ -193,7 +193,8 @@ ui <- navbarPage(theme = shinytheme("journal"),
                  br(),
                  plotlyOutput("predDestCarrierPlot")
         ),
-        tabPanel("Flight Map", value = "mapTab", plotlyOutput("flight_map")))
+        tabPanel("Flight Map", value = "mapTab", plotlyOutput("flight_map"))
+      )
     )
   )
 )
@@ -313,7 +314,11 @@ server <- function(input, output) {
       
       prediction$pred_data <- res %>%
         mutate(delayProb = model.static.pred) %>%
-        group_by(carrier, dest, day, month, duration, depart) %>%
+        group_by(
+          carrier = if (input$fullNames) carrier else carrier.code,
+          dest = if (input$fullNames) dest else dest.code,
+          day, month, duration, depart
+        ) %>%
         reframe(delayProb)
       
     }, ignoreNULL = TRUE, ignoreInit = TRUE)
