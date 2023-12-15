@@ -193,11 +193,15 @@ ui <- navbarPage(theme = shinytheme("journal"),
                  br(),
                  plotlyOutput("predDestCarrierPlot")
         ),
-        tabPanel("Flight Map", value = "mapTab", plotlyOutput("flight_map"))
-      )
+        tabPanel("Flight Map", value = "mapTab", plotlyOutput("flight_map")))
     )
-  )
+  ), tags$footer(
+    style = "position: fixed; bottom: 0; width: 100%; text-align: center; background-color: lightgrey;",
+    "This app was developed by Edward Harvey and Chris Gresehover")  
 )
+    
+
+
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
@@ -314,11 +318,7 @@ server <- function(input, output) {
       
       prediction$pred_data <- res %>%
         mutate(delayProb = model.static.pred) %>%
-        group_by(
-          carrier = if (input$fullNames) carrier else carrier.code,
-          dest = if (input$fullNames) dest else dest.code,
-          day, month, duration, depart
-        ) %>%
+        group_by(carrier, dest, day, month, duration, depart) %>%
         reframe(delayProb)
       
     }, ignoreNULL = TRUE, ignoreInit = TRUE)
